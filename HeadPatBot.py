@@ -2,11 +2,16 @@
 import os
 
 import discord
+from configparser import ConfigParser
+
+config = ConfigParser()
+config.read('config.ini')
 
 TOKEN = os.environ['DISCORD_TOKEN']
-
 client = discord.Client()
-WAIFU_REPLY = 'Sure. Here are the last waifu poll\'s results:\n'
+
+WAIFU_REPLY = config.get('DEFAULT', 'WAIFU_REPLY')
+HEADPAT_URL = config.get('DEFAULT', 'HEADPAT_URL')
 
 @client.event
 async def on_ready():
@@ -42,15 +47,25 @@ async def on_message(message):
             pins = await channel.pins()
             
             pin = pins[0]
-            if(len(message.content) > len(command)):
-                indexString = message.content[len(command) + 1].rstrip()
+            if  len(message.content) > len(command):
+                indexString = message.content[len(command) + 1:].rstrip()
                 pin = pins[int(indexString)]
             print(pin.content)
             await make_file(pin)
             await message.channel.send(content = WAIFU_REPLY, file = discord.File('waifupoll.txt'))
         command = '!headpat'
         if  command in message.content.lower():
-            message.reply('There there... Have a headpat, ' + message.author.display_name)
+            if  len(message.content) > len(command) and 'setfile' in message.content:
+                global HEADPAT_URL
+                HEADPAT_URL = message.content[len(command) + 2 + len('setfile'):].rstrip()
+                config.set('DEFAULT', 'HEADPAT_URL', HEADPAT_URL)
+                with open('config.ini', 'w') as f:
+                    config.write(f)
+            else:
+                embed = discord.Embed()
+                embed.set_image(url = HEADPAT_URL)
+                await message.reply('There there... Have a headpat, ' + message.author.display_name, embed = embed)
+        
     #except Exception as e:
     #    print(e)
     #    exit(-1)
