@@ -1,5 +1,6 @@
 # bot.py
 import os
+import random
 
 import discord
 from configparser import ConfigParser
@@ -11,7 +12,13 @@ TOKEN = os.environ['DISCORD_TOKEN']
 client = discord.Client()
 
 WAIFU_REPLY = config.get('DEFAULT', 'WAIFU_REPLY')
-HEADPAT_URL = config.get('DEFAULT', 'HEADPAT_URL')
+
+USAGE = {
+    '!headpat' : '!headpat /setimage <url>/addimage <url>/removeall\nWant headpats? Why not? Have Some!',
+    '!waifupoll' : '!waifupoll /<poll number (goes in reverse order, 0 is latest)>\nResults results results.',
+    'poll' : ('Pinning a message in a channel called waifu-rating will cause it to be reacted to with 1-10 and '
+    'the chequered flag\nEasy polls for lazy folk')
+}
 
 @client.event
 async def on_ready():
@@ -39,6 +46,24 @@ async def on_message(message):
         print(message.content)
         if message.author == client.user:
             return
+        
+        command = '!usage'
+        if  command in message.content.lower():
+            helpCommand = ''
+            if(len(message.content) > len(command)):
+                helpCommand = message.content.lower()[len(command) + 1:].rstrip()
+            if(helpCommand in USAGE):
+                await message.channel.send(USAGE[helpCommand])
+            else:
+                await message.channel.send(
+                ('Commands list:\n'
+                 '      !usage\n'
+                 '      !waifupoll\n' 
+                 '      !headpat\n'
+                 'Extra Functionality:\n'
+                 '      poll\n' 
+                 '!usage <any of the above commands or functionalities>'))
+            return
         command = '!waifupoll'
         if  command in message.content.lower():
             print('sending')
@@ -55,20 +80,51 @@ async def on_message(message):
             await message.channel.send(content = WAIFU_REPLY, file = discord.File('waifupoll.txt'))
         command = '!headpat'
         if  command in message.content.lower():
-            if  len(message.content) > len(command) and 'setfile' in message.content:
-                global HEADPAT_URL
-                HEADPAT_URL = message.content[len(command) + 2 + len('setfile'):].rstrip()
-                config.set('DEFAULT', 'HEADPAT_URL', HEADPAT_URL)
-                with open('config.ini', 'w') as f:
-                    config.write(f)
+            if  len(message.content) > len(command):
+                urls = await getWaifuURLs()
+                if 'setimage' in message.content.lower():
+                    url = message.content[len(command) + 2 + len('setImage'):].rstrip()
+                    if(len(urls) == 0):
+                        await addImage(url, urls)
+                    else:
+                        await setImage(url, urls)
+                if 'addimage' in message.content.lower():
+                    url = message.content[len(command) + 2 + len('addImage'):].rstrip()
+                    await addImage(url, urls)
+
+                if 'removeall' in message.content.lower():
+                    await setWaifuURLs([])
             else:
                 embed = discord.Embed()
-                embed.set_image(url = HEADPAT_URL)
+                try:
+                    embed.set_image(url = random.choice(await getWaifuURLs())[:-1])
+                except Exception as e:
+                    print(e)
+                    embed.set_image(url = 'https://i.pinimg.com/originals/99/4b/4e/994b4e0be0832e8ebf03e97a09859864.jpg')
+                    embed.set_footer(text = 'There is no headpat')
                 await message.reply('There there... Have a headpat, ' + message.author.display_name, embed = embed)
+        
         
     #except Exception as e:
     #    print(e)
     #    exit(-1)
+
+async def setImage(url, urls):
+    urls[random.randrange(len(urls))] = url + '\n'
+    await setWaifuURLs(urls)
+async def addImage(url, urls):
+    urls.append(url + '\n')
+    await setWaifuURLs(urls)
+async def getWaifuURLs():
+    with open('waifu_urls.txt', 'r') as f:
+        lines = f.readlines()
+        return lines
+
+
+async def setWaifuURLs(urls):
+    with open('waifu_urls.txt', 'w') as f:
+        for url in urls:
+            f.write(url)
 
 async def make_file(message):
     message = await message.channel.fetch_message(message.id)
