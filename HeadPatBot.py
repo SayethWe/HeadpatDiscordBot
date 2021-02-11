@@ -20,6 +20,16 @@ USAGE = {
     'the chequered flag\nEasy polls for lazy folk')
 }
 
+REPLY = {
+    'setimage' : ("I'll never forgive you if the URL is broken or not wholesome, Baka!\n"
+                    "I got rid of someone's image for you, too, so be thankful"),
+    'setimagenone' : ("There weren't any images to replace.\n"
+                        "Were you making fun of me? You were, weren't you?\n"
+                        "I've added your image anyway. It's not like I like it or anything!"),
+    'addimage' : "I know you wouldn't give me a broken or a not wholesome URL.\n Would you?",
+    'removeall' : "I will curse you until the end of your days.\nThey're gone.\nAll of them!"
+}
+
 @client.event
 async def on_ready():
     for guild in client.guilds:
@@ -82,18 +92,24 @@ async def on_message(message):
         if  command in message.content.lower():
             if  len(message.content) > len(command):
                 urls = await getWaifuURLs()
+                response = "That isn't how it works. Check !usage " + command
                 if 'setimage' in message.content.lower():
                     url = message.content[len(command) + 2 + len('setImage'):].rstrip()
                     if(len(urls) == 0):
                         await addImage(url, urls)
+                        response = REPLY['setimagenone']
                     else:
                         await setImage(url, urls)
+                        response = REPLY['setimage']
                 if 'addimage' in message.content.lower():
                     url = message.content[len(command) + 2 + len('addImage'):].rstrip()
                     await addImage(url, urls)
+                    response = REPLY['addimage']
 
                 if 'removeall' in message.content.lower():
                     await setWaifuURLs([])
+                    response = REPLY['removeall']
+                await message.channel.send(response)
             else:
                 embed = discord.Embed()
                 try:
