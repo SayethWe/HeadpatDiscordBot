@@ -158,7 +158,12 @@ async def getWaifuURLs():
 
 async def verifyURL(url):
     try:
-        urllib.request.urlopen(url)    
+        image_formats = ("image/png", "image/jpeg", "image/jpg", "image/gif")
+        r = urllib.request.urlopen(url)
+        print(r.headers['content-type'])
+        if r.headers["content-type"] in image_formats:
+            return True  
+        return False
     except Exception as e:
         return False
     return True
