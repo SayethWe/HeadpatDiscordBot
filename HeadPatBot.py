@@ -5,7 +5,6 @@ import urllib
 
 import discord
 from configparser import ConfigParser
-from git import Repo
 
 config = ConfigParser()
 config.read('config.ini')
