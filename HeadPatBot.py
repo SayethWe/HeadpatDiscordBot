@@ -42,7 +42,8 @@ async def on_ready():
         cp = cmd.run('cd ' + PATH_OF_GIT_REPO, check=True, shell=True)
         print("cp", cp)
         cmd.run('git init', check = True, shell = True)
-        cmd.run('git config user.email = achintya194@gmail.com', check = True, shell = True)
+        cmd.run('git config --global user.email = achintya194@gmail.com', check = True, shell = True)
+        cmd.run('git config --global user.name = arock19', check = True, shell = True)
         cmd.run('git remote add origin https://github.com/SayethWe/HeadpatDiscordBot', check=True, shell=True)
     except:
         print('git init failed')
