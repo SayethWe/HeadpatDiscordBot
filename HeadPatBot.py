@@ -1,6 +1,7 @@
 # bot.py
 import os
 import random
+import urllib
 
 import discord
 from configparser import ConfigParser
@@ -22,12 +23,16 @@ USAGE = {
 
 REPLY = {
     'setimage' : ("I'll never forgive you if the URL is broken or not wholesome, Baka!\n"
-                    "I got rid of someone's image for you, too, so be thankful"),
+                    "I got rid of someone's image for you, too, so be thankful :relieved:"),
     'setimagenone' : ("There weren't any images to replace.\n"
-                        "Were you making fun of me? You were, weren't you?\n"
-                        "I've added your image anyway. It's not like I like it or anything!"),
-    'addimage' : "I know you wouldn't give me a broken or a not wholesome URL.\n Would you?",
-    'removeall' : "I will curse you until the end of your days.\nThey're gone.\nAll of them!"
+                        "Were you making fun of me? You were, weren't you? :anger:\n"
+                        "I've added your image anyway. It's not like it's a photo of me. Is it? :flushed:"),
+    'addimage' : "I know you wouldn't give me a not wholesome URL.\nWould you?\nPerhaps I'll just ignore it next time",
+    'removeall' : "I will curse you until the end of your days.\nThey're gone.\nAll of them!",
+    'urlbroken' : "That doesn't work!\nIf you don't get me a working URL, I, I'll... I'll have to do it, y'know",
+    'existingurl' : ("Are you making fun of me?\n"
+                    "Even I can tell that I already have that one. :face_with_hand_over_mouth:\n"
+                    "If you've got the time, maybe you should spend it on more worthwhile images! :anger:")
 }
 
 @client.event
@@ -96,15 +101,18 @@ async def on_message(message):
                 if 'setimage' in message.content.lower():
                     url = message.content[len(command) + 2 + len('setImage'):].rstrip()
                     if(len(urls) == 0):
-                        await addImage(url, urls)
-                        response = REPLY['setimagenone']
+                        response = await addImage(url, urls)
+                        if not response:
+                            response = REPLY['setimagenone']
                     else:
-                        await setImage(url, urls)
-                        response = REPLY['setimage']
+                        response = await setImage(url, urls)
+                        if not response:
+                            response = REPLY['setimage']
                 if 'addimage' in message.content.lower():
                     url = message.content[len(command) + 2 + len('addImage'):].rstrip()
-                    await addImage(url, urls)
-                    response = REPLY['addimage']
+                    response = await addImage(url, urls)
+                    if not response:
+                        response = REPLY['addimage']
 
                 if 'removeall' in message.content.lower():
                     await setWaifuURLs([])
@@ -126,16 +134,34 @@ async def on_message(message):
     #    exit(-1)
 
 async def setImage(url, urls):
+    if not await verifyURL(url):
+        return REPLY['urlbroken']
+    if url +'\n' in urls:
+        return REPLY['existingurl']
     urls[random.randrange(len(urls))] = url + '\n'
     await setWaifuURLs(urls)
+    return ''
+
 async def addImage(url, urls):
+    if not await verifyURL(url):
+        return REPLY['urlbroken']
+    if url +'\n' in urls:
+        return REPLY['existingurl']
     urls.append(url + '\n')
     await setWaifuURLs(urls)
+    return ''
+
 async def getWaifuURLs():
     with open('waifu_urls.txt', 'r') as f:
         lines = f.readlines()
         return lines
 
+async def verifyURL(url):
+    try:
+        urllib.request.urlopen(url)    
+    except Exception as e:
+        return False
+    return True
 
 async def setWaifuURLs(urls):
     with open('waifu_urls.txt', 'w') as f:
