@@ -38,6 +38,14 @@ REPLY = {
 
 @client.event
 async def on_ready():
+    try:
+        cp = cmd.run('cd ' + PATH_OF_GIT_REPO, check=True, shell=True)
+        print("cp", cp)
+        cmd.run('git init', check = True, shell = True)
+        cmd.run('git config user.email = achintya194@gmail.com', check = True, shell = True)
+        cmd.run('git remote add origin https://github.com/SayethWe/HeadpatDiscordBot', check=True, shell=True)
+    except:
+        print('git init failed')
     for guild in client.guilds:
 
         print(
@@ -198,7 +206,7 @@ def git_push_automation():
         print("cp", cp)
         cmd.run('git add "waifu_urls.txt"', check=True, shell=True)
         cmd.run('git commit -m "message"', check=True, shell=True)
-        cmd.run("git push", check=True, shell=True)
+        cmd.run("git push -u origin master", check=True, shell=True)
         print("Success")
         return True
     except:
