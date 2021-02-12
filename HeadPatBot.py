@@ -5,10 +5,12 @@ import urllib
 
 import discord
 from configparser import ConfigParser
+from git import Repo
 
 config = ConfigParser()
 config.read('config.ini')
 
+PATH_OF_GIT_REPO = os.path.dirname(os.path.realpath('waifu_urls.txt'))
 TOKEN = os.environ['DISCORD_TOKEN']
 client = discord.Client()
 
@@ -172,6 +174,8 @@ async def setWaifuURLs(urls):
     with open('waifu_urls.txt', 'w') as f:
         for url in urls:
             f.write(url)
+    print(PATH_OF_GIT_REPO)
+    git_push_automation()
 
 async def make_file(message):
     message = await message.channel.fetch_message(message.id)
@@ -188,6 +192,18 @@ async def make_file(message):
     f.close()
     return 
         
-
+import subprocess as cmd
+def git_push_automation():
+    try:
+        cp = cmd.run('cd ' + PATH_OF_GIT_REPO, check=True, shell=True)
+        print("cp", cp)
+        cmd.run('git add "waifu_urls.txt"', check=True, shell=True)
+        cmd.run('git commit -m "message"', check=True, shell=True)
+        cmd.run("git push", check=True, shell=True)
+        print("Success")
+        return True
+    except:
+        print("Error git automation")
+        return False
 
 client.run(TOKEN)
