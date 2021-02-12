@@ -207,7 +207,7 @@ def git_push_automation():
         print("cp", cp)
         cmd.run('git add "waifu_urls.txt"', check=True, shell=True)
         cmd.run('git commit -m "message"', check=True, shell=True)
-        cmd.run("git push 'https://arock19:"+ os.environ['GIT_TOKEN'] +"@github.com/SayethWe/HeadpatDiscordBot' master", check=True, shell=True)
+        cmd.run("git push 'https://"os.environ['GIT_USERNAME']":"+ os.environ['GIT_TOKEN'] +"@github.com/SayethWe/HeadpatDiscordBot' master", check=True, shell=True)
         print("Success")
         return True
     except:
