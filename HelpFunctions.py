@@ -272,9 +272,9 @@ def createTables(dbURL):
         """,
         """
         CREATE TABLE IF NOT EXISTS headpats (
-            id SERIAL,
             guild TEXT NOT NULL
             url TEXT NOT NULL
+            PRIMARY KEY (guild, url)
             )
         """,
         "CREATE EXTENSION IF NOT EXISTS tsm_system_rows"
