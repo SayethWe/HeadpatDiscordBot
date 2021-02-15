@@ -1,1 +1,5 @@
 discord.py
+numpy
+matplotlib
+opencv-python
+psycopg2
