@@ -335,6 +335,19 @@ def getHeadpat(dbURL,guildID):
         conn.close()
     return output
 
+def removeHeadpat(dbURL,guildID,url):
+    command=f"DELETE FROM headpats WHERE guild='{guildID}' AND url = '{url}'"
+    conn=db.connect(dbURL);
+    cur = conn.cursor()
+    try:
+        cur.execute(command)
+        conn.commit()
+    except (Exception, db.DatabaseError) as error:
+        print(error)
+    finally:
+        cur.close()
+        conn.close()
+
 def addContestant(dbURL,title,name,imageURL):
     command = """
             INSERT INTO entrants(name, guild, immunity, probability, image)
