@@ -14,17 +14,17 @@ def main() :
     offset=20
     numCol=5
     numRow=2
-    
+
     roundSize=10
     selectivity=-1
     immunityScale=1
     probabilityScale=2
-    
-    
+
+
     title="discord"
 
     DATABASE_HOST=os.environ['DATABASE_URL']
-    
+
     #createTables(conn,title)
     iconNums=range(roundSize)
     resName='RoundImg.png'
@@ -51,7 +51,7 @@ def main() :
     #       "Yuno Gasai","2B","Makoto Niijima","Kyoko Kirigiri",
     #       "Makise Kurisu","Senjougahara Hitagi"]
     #votes=[5,1,2,2,2,6,3,3,5,1]
-           
+
     #res=getRound(conn,1)
     #names=res[0][1];
     #votes=res[0][2];
@@ -59,7 +59,7 @@ def main() :
     #round=storeRoundStart(conn,title,names)
     #print(round)
     #storeRoundEnd(conn,title,votes,1)
-    
+
     #roundImg=createImage(dirPath,title,names,iconNums,roundSize,targetHeight,numCol,numRow,pad,offset,conn)
     #Save Results
     #cv2.imwrite(resPath,roundImg)
@@ -69,7 +69,7 @@ def main() :
     #distFig.savefig(distPath)
 
     #imm,prob=calculateRound(votes,probabilityScale,immunityScale,selectivity,1)
-    
+
     #print(imm)
     #print(prob)
 
@@ -97,10 +97,10 @@ def createImage(baseDir,title,names,iconNums,roundSize,targetHeight,numCol,numRo
         imgRow=np.full([targetHeight,1,3],0,dtype=np.uint8)
         for k in range(numCol):
             i=j*numCol+k
-            
+
             if i>=roundSize:
                 break;
-            
+
             iconName='%02.0f.png' %iconNums[i]
             name=names[i]
             #print(name)
@@ -141,7 +141,7 @@ def createImage(baseDir,title,names,iconNums,roundSize,targetHeight,numCol,numRo
             iconRaw=cv2.imread(iconPath)
             iconPad=cv2.copyMakeBorder(iconRaw, 0, targetHeight-iconRaw.shape[0],
                                        0, 0, cv2.BORDER_CONSTANT, None,
-                                       [255, 255, 255])                                                                                                                    
+                                       [255, 255, 255])
 
             #concatenate images
             #print(iconPad.shape)
@@ -171,7 +171,7 @@ def createImage(baseDir,title,names,iconNums,roundSize,targetHeight,numCol,numRo
             imgFull=cv2.copyMakeBorder(imgFull, 0, 0, 0, rowLen-longestRow,
                                        cv2.BORDER_CONSTANT, None, [255, 255, 255])
             longestRow=rowLen
-            
+
         #concatenate Image
         #imgFull = cv2.vconcat([imgFull,imgRow]);
         imgFull = np.concatenate((imgFull,imgRow),0)
@@ -181,15 +181,15 @@ def createImage(baseDir,title,names,iconNums,roundSize,targetHeight,numCol,numRo
 def calculateRound(votes,probOffset,immunityScale,selectivity,roundNum):
     arr=np.array(votes)
     X=arr[arr!=0]
-    
+
     mean = np.mean(X)
     dev = np.std(X)
 
-    
+
     ones=np.ones(len(votes))
     marr=mean*ones
     sarr=dev*ones
-    
+
     prob=ones/(probOffset+arr)
     imm=np.floor(immunityScale*((arr-marr)/sarr-selectivity))
 
@@ -216,11 +216,11 @@ def generateRound(options,immunities,probabilities,roundNum,roundSize):
     valProb=valProb[imm>=0]
     imm=imm[imm>=0]
 
-    
+
     probSum=np.sum(valProb)*np.ones(len(val))
     probs=valProb/probSum
 
-    
+
 
     currSize=min(len(val),roundSize)
     #print(val)
@@ -232,7 +232,7 @@ def generateRound(options,immunities,probabilities,roundNum,roundSize):
 def generatePlots(options, votes):
     votes=np.array(votes);
     cut=np.mean(votes[votes>0])-np.std(votes[votes>0])
-    
+
     barFig=plt.figure()
     plt.bar(options,votes)
     plt.plot(np.array([options[0],options[len(options)-1]]),np.floor(np.array([cut,cut]))+0.5,'r-')
@@ -250,7 +250,7 @@ def generatePlots(options, votes):
     #plt.show()
 
     return (barFig,distFig)
-                             
+
 def createTables(dbURL):
     commands = (
         """
@@ -277,7 +277,17 @@ def createTables(dbURL):
             PRIMARY KEY (guild, url)
             )
         """,
-        "CREATE EXTENSION IF NOT EXISTS tsm_system_rows"
+        """
+        CREATE TABLE IF NOT EXISTS options (
+            guild PRIMARY KEY,
+            prefix TEXT,
+            edit_roles TEXT,
+            call_roles TEXT,
+            image_options FLOAT[],
+            vote_options FLOAT[]
+        )
+        """
+        #,"CREATE EXTENSION IF NOT EXISTS tsm_system_rows"
     )
     conn=db.connect(dbURL);
     cur=conn.cursor()
@@ -481,7 +491,7 @@ def getRoundNum(dbURL,title):
         conn.close()
     return res
 
-def getOptions(dbURL,title):
+def getContestants(dbURL,title):
     command="SELECT * from rounds WHERE guild = %s"
     conn=db.connect(dbURL);
     cur=conn.cursor()
@@ -497,4 +507,20 @@ def getOptions(dbURL,title):
         conn.close()
     return res;
 
+def getOptions(dbURL, guildID) :
+    command = f"SELECT * FROM options WHERE guild = '{guildID}''"
+    conn=db.connect(dbURL);
+    cur=conn.cursor()
+    defaults=("!headpat",[],[],[800,5,20,5,2],[10 -1 1 2])
+    res=defaults
+    try:
+        cur.execute(command, (title))
+        conn.commit()
+        res=cur.fetchall()
+    except (Exception, db.DatabaseError) as error:
+        print(error)
+    finally:
+        cur.close()
+        conn.close()
+    return res;
 #main()
