@@ -34,7 +34,9 @@ REPLY = {
     'urlbroken' : "That doesn't work!\nIf you don't get me a working URL, I, I'll... I'll have to do it, y'know",
     'existingurl' : ("Are you making fun of me?\n"
                     "Even I can tell that I already have that one. :face_with_hand_over_mouth:\n"
-                    "If you've got the time, maybe you should spend it on more worthwhile images! :anger:")
+                    "If you've got the time, maybe you should spend it on more worthwhile images! :anger:"),
+    'removeimage': ("Ok, it's gone"),
+    'imagedne': ("I don't have that one.")
 }
 
 @client.event
@@ -101,30 +103,33 @@ async def on_message(message):
             if  len(message.content) > len(command):
                 response = "That isn't how it works. Check !usage " + command
                 if 'setimage' in message.content.lower():
-                    url = message.content[len(command) + 2 + len('setImage'):].rstrip()
+                    url = getArg(message.content, 2)
+                    #url = message.content[len(command) + 2 + len('setImage'):].rstrip()
                     if(len(urls) == 0):
                         response = await addImage(url, message)
-                        if not response:
-                            response = REPLY['setimagenone']
                     else:
                         response = await setImage(url, message)
-                        if not response:
-                            response = REPLY['setimage']
+
                 elif 'addimage' in message.content.lower():
-                    url = message.content[len(command) + 2 + len('addImage'):].rstrip()
+                    url = getArg(message.content, 2).rstrip()
+                    #url = message.content[len(command) + 2 + len('addImage'):].rstrip()
                     response = await addImage(url, message)
-                    if not response:
-                        response = REPLY['addimage']
+
+                elif 'removeimage' in message.content.lower():
+                    url = getArg(message.content, 2).rstrip()
+                    response = await removeImage(url, message)
                 
                 await message.channel.send(response)
             else:
                 embed = discord.Embed()
                 try:
-                    url = hf.getHeadpat(DATABASE_HOST, message.guild.id)
-                    if await verifyURL(url):
-                        embed.set_image(url=url)
-                    else:
-                        setDefaultHeadpat(embed)
+                    while(True):
+                        url = hf.getHeadpat(DATABASE_HOST, message.guild.id)
+                        if await verifyURL(url):
+                            embed.set_image(url=url)
+                            break
+                        else:
+                            await removeImage(url, message)                     
                 except Exception as e:
                     print(e)
                     setDefaultHeadpat(embed)
@@ -135,6 +140,11 @@ async def on_message(message):
     #except Exception as e:
     #    print(e)
     #    exit(-1)
+
+
+
+def getArg(command, index):
+    return command.split(' ')[index]
 
 def setDefaultHeadpat(embed):
     embed.set_image(url = 'https://i.pinimg.com/originals/99/4b/4e/994b4e0be0832e8ebf03e97a09859864.jpg')
@@ -149,13 +159,19 @@ async def setImage(url, urls):
     await setWaifuURLs(urls)
     return ''
 
+async def removeImage(url, message):
+    if(hf.removeHeadpat(DATABASE_HOST, message.guild.id, url)):
+        return REPLY['removeimage']
+    else:
+        return REPLY['imagedne']
+
 async def addImage(url, message):
     if not await verifyURL(url):
         return REPLY['urlbroken']
     added = hf.addHeadpat(DATABASE_HOST, message.guild.id, url)
     if added:
         return REPLY['addimage']
-    return 'Error. No more headpat.'
+    return REPLY['existingurl']
 
 async def getWaifuURLs():
     with open('waifu_urls.txt', 'r') as f:
