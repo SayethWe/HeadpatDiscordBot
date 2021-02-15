@@ -301,14 +301,18 @@ def addHeadpat(dbURL,guildID,url):
     command = "INSERT INTO headpats(guild, url) VALUES (%s,%s)"
     conn=db.connect(dbURL);
     cur = conn.cursor()
+    res = False
     try:
         cur.execute(command, (guildID,url))
         conn.commit()
+        res = True
     except (Exception, db.DatabaseError) as error:
         print(error)
+        res = False
     finally:
         cur.close()
         conn.close()
+    return res
 
 def getHeadpat(dbURL,guildID):
     commands=(f"CREATE temp TABLE temp_headpats AS SELECT * FROM headpats WHERE guild ='{guildID}'",

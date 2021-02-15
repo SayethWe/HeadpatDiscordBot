@@ -9,7 +9,6 @@ from configparser import ConfigParser
 
 config = ConfigParser()
 config.read('config.ini')
-os.environ['DATABASE_URL']="postgres://fbprzmjwpojtyg:19aa0de47bbc9480ecf7138d8debeee37be7d6771adf93255143f93062232c44@ec2-52-4-171-132.compute-1.amazonaws.com:5432/d6mgp7q80j2nmn"
 PATH_OF_GIT_REPO = os.path.dirname(os.path.realpath('waifu_urls.txt'))
 TOKEN = os.environ['DISCORD_TOKEN']
 DATABASE_HOST=os.environ['DATABASE_URL']
@@ -104,16 +103,16 @@ async def on_message(message):
                 if 'setimage' in message.content.lower():
                     url = message.content[len(command) + 2 + len('setImage'):].rstrip()
                     if(len(urls) == 0):
-                        response = await addImage(url)
+                        response = await addImage(url, message)
                         if not response:
                             response = REPLY['setimagenone']
                     else:
-                        response = await setImage(url)
+                        response = await setImage(url, message)
                         if not response:
                             response = REPLY['setimage']
                 elif 'addimage' in message.content.lower():
                     url = message.content[len(command) + 2 + len('addImage'):].rstrip()
-                    response = await addImage(url)
+                    response = await addImage(url, message)
                     if not response:
                         response = REPLY['addimage']
                 
@@ -121,7 +120,7 @@ async def on_message(message):
             else:
                 embed = discord.Embed()
                 try:
-                    url = hf.getHeadpat(DATABASE_HOST, 1)
+                    url = hf.getHeadpat(DATABASE_HOST, message.guild.id)
                     if await verifyURL(url):
                         embed.set_image(url=url)
                     else:
@@ -150,14 +149,13 @@ async def setImage(url, urls):
     await setWaifuURLs(urls)
     return ''
 
-async def addImage(url, urls):
+async def addImage(url, message):
     if not await verifyURL(url):
         return REPLY['urlbroken']
-    if url +'\n' in urls:
-        return REPLY['existingurl']
-    urls.append(url + '\n')
-    await setWaifuURLs(urls)
-    return ''
+    added = hf.addHeadpat(DATABASE_HOST, message.guild.id, url)
+    if added:
+        return REPLY['addimage']
+    return 'Error. No more headpat.'
 
 async def getWaifuURLs():
     with open('waifu_urls.txt', 'r') as f:
