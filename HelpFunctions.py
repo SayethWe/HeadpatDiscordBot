@@ -316,8 +316,7 @@ def addHeadpat(dbURL,guildID,url):
 
 def getHeadpat(dbURL,guildID):
     commands=(f"CREATE temp TABLE temp_headpats AS SELECT * FROM headpats WHERE guild ='{guildID}'",
-              "SELECT url FROM temp_headpats TABLESAMPLE SYSTEM_ROWS (1)",
-             "DROP TABLE temp_headpats")
+              "SELECT url FROM temp_headpats TABLESAMPLE SYSTEM_ROWS (1)")
     conn=db.connect(dbURL);
     cur = conn.cursor()
     output = ""
@@ -329,6 +328,8 @@ def getHeadpat(dbURL,guildID):
     except (Exception, db.DatabaseError) as error:
         print(error)
     finally:
+        cur.execute('DROP TABLE temp_headpats')
+        conn.commit()
         cur.close()
         conn.close()
     return output
