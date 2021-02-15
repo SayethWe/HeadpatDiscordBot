@@ -256,7 +256,7 @@ def createTables(dbURL):
         """
         CREATE TABLE IF NOT EXISTS entrants (
             name TEXT PRIMARY KEY,
-            guild TEXT NOT NULL
+            guild TEXT NOT NULL,
             immunity INTEGER NOT NULL,
             probability FLOAT NOT NULL,
             image TEXT NOT NULL
@@ -265,15 +265,15 @@ def createTables(dbURL):
         """
         CREATE TABLE IF NOT EXISTS rounds (
             round_num SERIAL,
-            guild TEXT NOT NULL
+            guild TEXT NOT NULL,
             names TEXT[] NOT NULL,
             votes INTEGER[]
             )
         """,
         """
         CREATE TABLE IF NOT EXISTS headpats (
-            guild TEXT NOT NULL
-            url TEXT NOT NULL
+            guild TEXT NOT NULL,
+            url TEXT NOT NULL,
             PRIMARY KEY (guild, url)
             )
         """,
@@ -291,12 +291,18 @@ def createTables(dbURL):
         cur.close()
         conn.close()
 
-def addHeadpat(dbURL,title,url):
+def addHeadpat(dbURL,guildID,url):
+    '''
+        Adds a URL to the database given in a headpats(guild, url) table
+        dbURL: database URL
+        guildID: guild ID
+        url: Image of the headpat
+    '''
     command = "INSERT INTO headpats(guild, url) VALUES (%s,%s)"
     conn=db.connect(dbURL);
     cur = conn.cursor()
     try:
-        cur.execute(command, (title,imageURL))
+        cur.execute(command, (guildID,url))
         conn.commit()
     except (Exception, db.DatabaseError) as error:
         print(error)
@@ -304,19 +310,23 @@ def addHeadpat(dbURL,title,url):
         cur.close()
         conn.close()
 
-def getHeadpat(dbURL,title):
-    commands=("CREATE temp TABLE temp_headpats AS SELECT * FROM headpats WHERE guild =%s",
-              "SELECT url FROM temp_headpats TABLESAMPLE_SYSTEM_ROWS(1)")
+def getHeadpat(dbURL,guildID):
+    commands=(f"CREATE temp TABLE temp_headpats AS SELECT * FROM headpats WHERE guild ='{guildID}'",
+              "SELECT url FROM temp_headpats TABLESAMPLE SYSTEM_ROWS (1)")
     conn=db.connect(dbURL);
     cur = conn.cursor()
+    output = ""
     try:
-        cur.execute(command, (title))
+        for command in commands:
+            cur.execute(command)
         conn.commit()
+        output = cur.fetchone()[0]
     except (Exception, db.DatabaseError) as error:
         print(error)
     finally:
         cur.close()
         conn.close()
+    return output
 
 def addContestant(dbURL,title,name,imageURL):
     command = """
@@ -463,4 +473,4 @@ def getOptions(dbURL,title):
         conn.close()
     return res;
 
-main()
+#main()

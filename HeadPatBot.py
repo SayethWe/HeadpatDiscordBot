@@ -2,21 +2,23 @@
 import os
 import random
 import urllib
+import HelpFunctions as hf
 
 import discord
 from configparser import ConfigParser
 
 config = ConfigParser()
 config.read('config.ini')
-
+os.environ['DATABASE_URL']="postgres://fbprzmjwpojtyg:19aa0de47bbc9480ecf7138d8debeee37be7d6771adf93255143f93062232c44@ec2-52-4-171-132.compute-1.amazonaws.com:5432/d6mgp7q80j2nmn"
 PATH_OF_GIT_REPO = os.path.dirname(os.path.realpath('waifu_urls.txt'))
 TOKEN = os.environ['DISCORD_TOKEN']
+DATABASE_HOST=os.environ['DATABASE_URL']
 client = discord.Client()
 
 WAIFU_REPLY = config.get('DEFAULT', 'WAIFU_REPLY')
 
 USAGE = {
-    '!headpat' : '!headpat /setimage <url>/addimage <url>/removeall\nWant headpats? Why not? Have Some!',
+    '!headpat' : '!headpat /setimage <url>/addimage <url>/removeall[DEPRECATED]\nWant headpats? Why not? Have Some!',
     '!waifupoll' : '!waifupoll /<poll number (goes in reverse order, 0 is latest)>\nResults results results.',
     'poll' : ('Pinning a message in a channel called waifu-rating will cause it to be reacted to with 1-10 and '
     'the chequered flag\nEasy polls for lazy folk')
@@ -38,17 +40,9 @@ REPLY = {
 
 @client.event
 async def on_ready():
-    try:
-        cp = cmd.run('cd ' + PATH_OF_GIT_REPO, check=True, shell=True)
-        print("cp", cp)
-        cmd.run('git init', check = True, shell = True)
-        cmd.run('git config --global user.email = achintya194@gmail.com', check = True, shell = True)
-        cmd.run('git config --global user.name = arock19', check = True, shell = True)
-        cmd.run('git remote add origin https://github.com/SayethWe/HeadpatDiscordBot', check=True, shell=True)
-    except:
-        print('git init failed')
+    hf.createTables(DATABASE_HOST)
     for guild in client.guilds:
-
+        
         print(
             f'{client.user} is connected to the following guild:\n'
             f'{guild.name}(id: {guild.id})'
@@ -106,42 +100,46 @@ async def on_message(message):
         command = '!headpat'
         if  command in message.content.lower():
             if  len(message.content) > len(command):
-                urls = await getWaifuURLs()
                 response = "That isn't how it works. Check !usage " + command
                 if 'setimage' in message.content.lower():
                     url = message.content[len(command) + 2 + len('setImage'):].rstrip()
                     if(len(urls) == 0):
-                        response = await addImage(url, urls)
+                        response = await addImage(url)
                         if not response:
                             response = REPLY['setimagenone']
                     else:
-                        response = await setImage(url, urls)
+                        response = await setImage(url)
                         if not response:
                             response = REPLY['setimage']
-                if 'addimage' in message.content.lower():
+                elif 'addimage' in message.content.lower():
                     url = message.content[len(command) + 2 + len('addImage'):].rstrip()
-                    response = await addImage(url, urls)
+                    response = await addImage(url)
                     if not response:
                         response = REPLY['addimage']
-
-                if 'removeall' in message.content.lower():
-                    await setWaifuURLs([])
-                    response = REPLY['removeall']
+                
                 await message.channel.send(response)
             else:
                 embed = discord.Embed()
                 try:
-                    embed.set_image(url = random.choice(await getWaifuURLs())[:-1])
+                    url = hf.getHeadpat(DATABASE_HOST, 1)
+                    if await verifyURL(url):
+                        embed.set_image(url=url)
+                    else:
+                        setDefaultHeadpat(embed)
                 except Exception as e:
                     print(e)
-                    embed.set_image(url = 'https://i.pinimg.com/originals/99/4b/4e/994b4e0be0832e8ebf03e97a09859864.jpg')
-                    embed.set_footer(text = 'There is no headpat')
+                    setDefaultHeadpat(embed)
+
                 await message.reply('There there... Have a headpat, ' + message.author.display_name, embed = embed)
         
         
     #except Exception as e:
     #    print(e)
     #    exit(-1)
+
+def setDefaultHeadpat(embed):
+    embed.set_image(url = 'https://i.pinimg.com/originals/99/4b/4e/994b4e0be0832e8ebf03e97a09859864.jpg')
+    embed.set_footer(text = 'There is no headpat')
 
 async def setImage(url, urls):
     if not await verifyURL(url):
@@ -200,18 +198,5 @@ async def make_file(message):
     f.close()
     return 
         
-import subprocess as cmd
-def git_push_automation():
-    try:
-        cp = cmd.run('cd ' + PATH_OF_GIT_REPO, check=True, shell=True)
-        print("cp", cp)
-        cmd.run('git add "waifu_urls.txt"', check=True, shell=True)
-        cmd.run('git commit -m "message"', check=True, shell=True)
-        cmd.run("git push 'https://"os.environ['GIT_USERNAME']":"+ os.environ['GIT_TOKEN'] +"@github.com/SayethWe/HeadpatDiscordBot' master", check=True, shell=True)
-        print("Success")
-        return True
-    except:
-        print("Error git automation")
-        return False
 
 client.run(TOKEN)
