@@ -1,5 +1,5 @@
 discord.py
 numpy
 matplotlib
-opencv-python
+opencv-python-headless
 psycopg2
