@@ -9,15 +9,25 @@ from configparser import ConfigParser
 
 config = ConfigParser()
 config.read('config.ini')
-PATH_OF_GIT_REPO = os.path.dirname(os.path.realpath('waifu_urls.txt'))
+
 TOKEN = os.environ['DISCORD_TOKEN']
-DATABASE_HOST=os.environ['DATABASE_URL']
+DATABASE_HOST = os.environ['DATABASE_URL']
 client = discord.Client()
 
 WAIFU_REPLY = config.get('DEFAULT', 'WAIFU_REPLY')
 
+DEFAULTUSAGE = (
+            'Commands list:\n'
+            '    !usage\n'
+            '    !waifupoll\n' 
+            '    !headpat\n'
+            'Extra Functionality:\n'
+            '    poll\n' 
+            '!usage <any of the above commands or functionalities>')
+
 USAGE = {
-    '!headpat' : '!headpat /setimage <url>/addimage <url>/removeall[DEPRECATED]\nWant headpats? Why not? Have Some!',
+    '!usage' : 'de nada, nuh uh',
+    '!headpat' : '!headpat <nothing>/setimage <url>/addimage <url>/removeimage <url>\nWant headpats? Why not? Have Some!',
     '!waifupoll' : '!waifupoll /<poll number (goes in reverse order, 0 is latest)>\nResults results results.',
     'poll' : ('Pinning a message in a channel called waifu-rating will cause it to be reacted to with 1-10 and '
     'the chequered flag\nEasy polls for lazy folk')
@@ -38,6 +48,7 @@ REPLY = {
     'removeimage': ("Ok, it's gone"),
     'imagedne': ("I don't have that one.")
 }
+
 
 @client.event
 async def on_ready():
@@ -67,23 +78,13 @@ async def on_message(message):
         if message.author == client.user:
             return
         
-        command = '!usage'
-        if  command in message.content.lower():
-            helpCommand = ''
-            if(len(message.content) > len(command)):
-                helpCommand = message.content.lower()[len(command) + 1:].rstrip()
-            if(helpCommand in USAGE):
-                await message.channel.send(USAGE[helpCommand])
-            else:
-                await message.channel.send(
-                ('Commands list:\n'
-                 '      !usage\n'
-                 '      !waifupoll\n' 
-                 '      !headpat\n'
-                 'Extra Functionality:\n'
-                 '      poll\n' 
-                 '!usage <any of the above commands or functionalities>'))
+        commandArgs = getArgs(message)
+        command = commandArgs[0].lower()
+
+        if  command in COMMANDFUNCTION:
+            await COMMANDFUNCTION[command](message, commandArgs)
             return
+
         command = '!waifupoll'
         if  command in message.content.lower():
             print('sending')
@@ -98,50 +99,64 @@ async def on_message(message):
             print(pin.content)
             await make_file(pin)
             await message.channel.send(content = WAIFU_REPLY, file = discord.File('waifupoll.txt'))
-        command = '!headpat'
-        if  command in message.content.lower():
-            if  len(message.content) > len(command):
-                response = "That isn't how it works. Check !usage " + command
-                if 'setimage' in message.content.lower():
-                    url = getArg(message.content, 2)
-                    #url = message.content[len(command) + 2 + len('setImage'):].rstrip()
-                    if(len(urls) == 0):
-                        response = await addImage(url, message)
-                    else:
-                        response = await setImage(url, message)
-
-                elif 'addimage' in message.content.lower():
-                    url = getArg(message.content, 2).rstrip()
-                    #url = message.content[len(command) + 2 + len('addImage'):].rstrip()
-                    response = await addImage(url, message)
-
-                elif 'removeimage' in message.content.lower():
-                    url = getArg(message.content, 2).rstrip()
-                    response = await removeImage(url, message)
-                
-                await message.channel.send(response)
-            else:
-                embed = discord.Embed()
-                try:
-                    while(True):
-                        url = hf.getHeadpat(DATABASE_HOST, message.guild.id)
-                        if await verifyURL(url):
-                            embed.set_image(url=url)
-                            break
-                        else:
-                            await removeImage(url, message)                     
-                except Exception as e:
-                    print(e)
-                    setDefaultHeadpat(embed)
-
-                await message.reply('There there... Have a headpat, ' + message.author.display_name, embed = embed)
+        
+           
         
         
     #except Exception as e:
     #    print(e)
     #    exit(-1)
+async def handleHeadpat(message, args):
+    command = args[0].lower()
+    if len(args) > 2:
+        commandHelper = args[1].lower()
+        args[1] = args[2]
+        args[0] = args[0] + commandHelper
+        await COMMANDFUNCTION[command+commandHelper](message, args)        
+    elif len(args) == 1:
+        await COMMANDFUNCTION[command+'get'](message, args)
+    else:
+        response = "That isn't how it works. Check !usage " + command
+        message.reply(response)
 
 
+async def handleHeadpatRemoveImage(message, args):
+    url = args[1]
+    await message.reply(await removeImage(url, message))
+
+async def handleHeadpatAddImage(message, args):
+    url = args[1]
+    await message.reply(await addImage(url, message))
+
+async def handleHeadpatGet(message, args):
+    embed = discord.Embed()
+    try:
+        while(True):
+            url = hf.getHeadpat(DATABASE_HOST, message.guild.id)
+            if await verifyURL(url):
+                embed.set_image(url=url)
+                break
+            else:
+                await removeImage(url, message)                     
+    except Exception as e:
+        print(e)
+        setDefaultHeadpat(embed)
+
+    await message.reply('There there... Have a headpat, ' + message.author.display_name, embed = embed)
+
+async def handleUsage(message, args):
+    helpCommand = ''
+
+    if(len(args) > 1):
+        helpCommand = args[1].lower()
+
+    if(helpCommand in USAGE):
+        await message.reply(USAGE[helpCommand])
+    else:
+        await message.reply(DEFAULTUSAGE)
+
+def getArgs(message):
+    return message.content.split(' ')
 
 def getArg(command, index):
     return command.split(' ')[index]
@@ -173,11 +188,6 @@ async def addImage(url, message):
         return REPLY['addimage']
     return REPLY['existingurl']
 
-async def getWaifuURLs():
-    with open('waifu_urls.txt', 'r') as f:
-        lines = f.readlines()
-        return lines
-
 async def verifyURL(url):
     try:
         image_formats = ("image/png", "image/jpeg", "image/jpg", "image/gif")
@@ -187,15 +197,9 @@ async def verifyURL(url):
             return True  
         return False
     except Exception as e:
+        print(e)
         return False
     return True
-
-async def setWaifuURLs(urls):
-    with open('waifu_urls.txt', 'w') as f:
-        for url in urls:
-            f.write(url)
-    print(PATH_OF_GIT_REPO)
-    git_push_automation()
 
 async def make_file(message):
     message = await message.channel.fetch_message(message.id)
@@ -211,6 +215,13 @@ async def make_file(message):
         f.write(f'{count}\n')
     f.close()
     return 
-        
+
+COMMANDFUNCTION = {
+    '!usage' : handleUsage,
+    '!headpat' : handleHeadpat,
+    '!headpataddimage' : handleHeadpatAddImage,
+    '!headpatget' : handleHeadpatGet,
+    '!headpatremoveimage' : handleHeadpatRemoveImage
+} 
 
 client.run(TOKEN)
