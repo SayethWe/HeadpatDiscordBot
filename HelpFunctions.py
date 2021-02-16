@@ -84,9 +84,33 @@ def main() :
 
     conn.close()
 
+DEFAULTPAD = 5
+DEFAULTOFFSET = 20
+DEFAULTTARGETHEIGHT = 800
+DEFAULTCOLS = 5
+DEFAULTROWS = 2
+DEFAULTSELECTIVITY = -1
+DEFAULTIMMUNITYSCALE = 1
+DEFAULTPROBABILITY = 2
 
-def createImage(baseDir,title,names,iconNums,roundSize,targetHeight,numCol,numRow,pad,offset,conn):
-    assert(len(names)==roundSize)
+def createImageDefault(dbURL, guild ,contestants):
+    baseDir = os.path.dirname(__file__)
+    createImage(
+        baseDir, 
+        contestants, 
+        range(len(contestants)), 
+        DEFAULTTARGETHEIGHT, 
+        DEFAULTCOLS,
+        DEFAULTROWS,
+        DEFAULTPAD,
+        DEFAULTOFFSET,
+        dbURL,
+        guild
+    )
+
+
+def createImage(baseDir,names,iconNums,targetHeight,numCol,numRow,pad,offset,dbURL,guild):
+    roundSize = len(names)
     assert(len(iconNums)>=roundSize)
     assert(numCol*numRow>=roundSize)
 
@@ -99,15 +123,15 @@ def createImage(baseDir,title,names,iconNums,roundSize,targetHeight,numCol,numRo
             i=j*numCol+k
 
             if i>=roundSize:
-                break;
+                break
 
             iconName='%02.0f.png' %iconNums[i]
             name=names[i]
             #print(name)
             imgName=name+'.png'
-            imgPath=os.path.join(baseDir,'img',imgName)
+            #imgPath=os.path.join(baseDir,'img',imgName)
             iconPath=os.path.join(baseDir,'icon',iconName)
-            url=getImageURL(conn,name);
+            url=getImageURL(dbURL, guild, name)
 
             #read the image
             resp=request.urlopen(url)
@@ -203,9 +227,9 @@ def calculateRound(votes,probOffset,immunityScale,selectivity,roundNum):
 
     return (imm,prob)
 
-def generateRound(options,immunities,probabilities,roundNum,roundSize):
+def generateRound(contestants,immunities,probabilities,roundNum,roundSize):
     imm=np.array(immunities)
-    val=np.array(options)[imm<roundNum]
+    val=np.array(contestants)[imm<roundNum]
     valProb=np.array(probabilities)[imm<roundNum]
     imm=imm[imm<roundNum]
 
@@ -279,7 +303,7 @@ def createTables(dbURL):
         """,
         """
         CREATE TABLE IF NOT EXISTS options (
-            guild PRIMARY KEY,
+            guild TEXT PRIMARY KEY,
             prefix TEXT,
             edit_roles TEXT,
             call_roles TEXT,
@@ -491,13 +515,13 @@ def getRoundNum(dbURL,title):
         conn.close()
     return res
 
-def getContestants(dbURL,title):
-    command="SELECT * from rounds WHERE guild = %s"
-    conn=db.connect(dbURL);
+def getContestants(dbURL,guildID):
+    command="SELECT name, immunity, probability, image from entrants WHERE guild = %s"
+    conn=db.connect(dbURL)
     cur=conn.cursor()
     res=[-1,-1,-1]
     try:
-        cur.execute(command, (title))
+        cur.execute(command, (guildID))
         conn.commit()
         res=cur.fetchall()
     except (Exception, db.DatabaseError) as error:
@@ -505,13 +529,13 @@ def getContestants(dbURL,title):
     finally:
         cur.close()
         conn.close()
-    return res;
+    return res
 
 def getOptions(dbURL, guildID) :
     command = f"SELECT * FROM options WHERE guild = '{guildID}''"
-    conn=db.connect(dbURL);
+    conn=db.connect(dbURL)
     cur=conn.cursor()
-    defaults=("!headpat",[],[],[800,5,20,5,2],[10 -1 1 2])
+    defaults=("!headpat",[],[],[800,5,20,5,2],[10 -1, 1, 2])
     res=defaults
     try:
         cur.execute(command, (title))
@@ -522,5 +546,5 @@ def getOptions(dbURL, guildID) :
     finally:
         cur.close()
         conn.close()
-    return res;
+    return res
 #main()
