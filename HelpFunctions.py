@@ -108,11 +108,11 @@ def createImageDefault(contestants,contestantUrls):
     baseDir = os.path.dirname(__file__)
     imgPath = os.path.join(baseDir, 'poll.jpg')
     cv2.imwrite(imgPath, createImage(
-        baseDir, 
-        contestants, 
+        baseDir,
+        contestants,
         contestantUrls,
-        range(len(contestants)), 
-        DEFAULTTARGETHEIGHT, 
+        range(len(contestants)),
+        DEFAULTTARGETHEIGHT,
         DEFAULTCOLS,
         DEFAULTPAD,
         DEFAULTOFFSET
@@ -121,7 +121,7 @@ def createImageDefault(contestants,contestantUrls):
 def startRound(dbURL, guild, message):
     '''
         Starts a new round for the guild given
-        effects: creates a poll image called 'poll.jpg' 
+        effects: creates a poll image called 'poll.jpg'
         returns: round_num
     '''
     roundNum = getRoundNum(dbURL, guild)
@@ -129,7 +129,7 @@ def startRound(dbURL, guild, message):
     if roundNum != 0 and not roundValues[1]:
         print('UNFINISHED ROUND')
         return -1
-    
+
     contestants = getContestants(dbURL, guild)
     print(contestants)
     #print(roundValues)
@@ -150,9 +150,9 @@ def startRound(dbURL, guild, message):
 
     return roundNum, len(picks)
 
-def calculateRoundDefault(votes, roundNum):
-    return calculateRound(votes, 
-                    DEFAULTPROBABILITY, 
+def calculateRoundDefault(contestants,votes, roundNum):
+    return calculateRound(contestants, votes,
+                    DEFAULTPROBABILITY,
                     DEFAULTIMMUNITYSCALE,
                     DEFAULTSELECTIVITY,
                     roundNum)
@@ -181,7 +181,7 @@ def updateMessageID(dbURL, guild, message, roundID):
 def endRound(dbURL, guild, votes, contestants, roundNum):
     '''
         Ends a round and displays results
-    '''   
+    '''
     print(contestants)
     print(votes)
     immprob = calculateRoundDefault(votes, roundNum)
@@ -194,19 +194,19 @@ def endRound(dbURL, guild, votes, contestants, roundNum):
     imgPath2 = os.path.join(baseDir, 'plot2.jpg')
     barFig.savefig(imgPath1)
     distFig.savefig(imgPath2)
-    
+
     for i in range(len(contestants)):
         updateContestant(dbURL, guild, contestants[i], immunities[i], probabilities[i])
 
-    storeRoundEnd(dbURL, guild, votes, roundNum)    
+    storeRoundEnd(dbURL, guild, votes, roundNum)
     return roundNum
 
 
 def createImage(baseDir,names, urls, iconNums,targetHeight,numCol,pad,offset):
     roundSize = len(names)
-    
+
     assert(roundSize != 0)
-    assert(len(iconNums)>=roundSize) 
+    assert(len(iconNums)>=roundSize)
     assert(numCol != 0)
     numRow=int(np.ceil(float(roundSize)/numCol))
 
@@ -298,12 +298,20 @@ def createImage(baseDir,names, urls, iconNums,targetHeight,numCol,pad,offset):
 
     return imgFull
 
-def calculateRound(votes,probOffset,immunityScale,selectivity,roundNum):
+def calculateRound(contestants,votes,probOffset,immunityScale,selectivity,roundNum):
     '''
         Calculates immunities and probabilities for a round
     '''
     arr=np.array(votes)
+    con=np.array(contestants)
+    print(arr)
     X=arr[arr!=0]
+    print(X)
+    if (len(X)==0):
+        imm=zeros(len(arr))
+        prob=zeros(len(arr))
+        elim=con
+        return (imm,prob,elim)
 
     mean = np.mean(X)
     dev = np.std(X)
@@ -312,6 +320,9 @@ def calculateRound(votes,probOffset,immunityScale,selectivity,roundNum):
     ones=np.ones(len(votes))
     marr=mean*ones
     sarr=dev*ones
+
+    elim=con[votes<marr+selectivity*sarr]
+
 
     prob=ones/(probOffset+arr)
     imm=np.floor(immunityScale*((arr-marr)/sarr-selectivity))
@@ -324,7 +335,7 @@ def calculateRound(votes,probOffset,immunityScale,selectivity,roundNum):
     #return future immunities
     imm[imm>=0]=imm[imm>=0]+roundNum+1
 
-    return (imm,prob)
+    return (imm,prob,elim)
 
 def generateRound(immunities,probabilities,roundNum,roundSize):
     imm=np.array(immunities)
