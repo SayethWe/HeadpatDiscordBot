@@ -16,21 +16,33 @@ client = discord.Client()
 
 WAIFU_REPLY = config.get('DEFAULT', 'WAIFU_REPLY')
 
+DEFAULTPOLLMESSAGE = ("Here's your round. But we all know that I'm the only one who deserves any votes.")
+
 DEFAULTUSAGE = (
             'Commands list:\n'
             '    !usage\n'
-            '    !waifupoll\n' 
+            '    !waifu\n' 
             '    !headpat\n'
             'Extra Functionality:\n'
-            '    poll\n' 
+            '    poll [DEPRECATED]\n' 
             '!usage <any of the above commands or functionalities>')
 
 USAGE = {
     '!usage' : 'de nada, nuh uh',
-    '!headpat' : '!headpat <nothing>/setimage <url>/addimage <url>/removeimage <url>\nWant headpats? Why not? Have Some!',
+    '!headpat' : '!headpat <nothing>/setimage <url>/addimage/removeimage <url>\nWant headpats? Why not? Have Some!',
     '!waifupoll' : '!waifupoll /<poll number (goes in reverse order, 0 is latest)>\nResults results results.',
     'poll' : ('Pinning a message in a channel called waifu-rating will cause it to be reacted to with 1-10 and '
-    'the chequered flag\nEasy polls for lazy folk')
+    'the chequered flag\nEasy polls for lazy folk [DEPRECIATED]'),
+    '!waifu' : ('!waifu add/poll\n'
+                'Easy polls for lazy folk, recommended use with waifus\n'),
+    '!waifuadd' : ('!waifu add <name_underscores_for_spaces> <imageurl aspect ratio about 1:3>\n'
+                   'Fulfill your deepest, darkest dream: being wholesome\n'
+                   'Adds waifus to the poll candidates'),
+    '!headpataddimage' : "!headpat addimage <url>\nYou want some of that action, don't you?",
+    '!headpatsetimage' : ("!headpat setimage <url>\nThe headpat equivalent of a shotgun with a blindfold\n"
+                          "Some random image will be removed, and replaced with yours\n"
+                          "Overusing this is bad. Don't be bad"),
+    '!headpatremoveimage' : ("")
 }
 
 REPLY = {
@@ -45,8 +57,16 @@ REPLY = {
     'existingurl' : ("Are you making fun of me?\n"
                     "Even I can tell that I already have that one. :face_with_hand_over_mouth:\n"
                     "If you've got the time, maybe you should spend it on more worthwhile images! :anger:"),
-    'removeimage': ("Ok, it's gone"),
-    'imagedne': ("I don't have that one.")
+    'removeimage': ("Ok, it's gone\n"
+                    "It's not coming back..."),
+    'imagedne': ("I don't have that one.\n"
+                 "Do you? :face_with_hand_over_mouth:"),
+    'waifuaddexisting' : ("They're in there, baka!\n"
+                          "本当に何、この状況！:anger:"),
+    'waifuadd' : ("Waifu Waifu Waifu! More Waifu!\n"
+                  "They've been added to the pool"),
+    'waifustartpoll' : ('Just a sec...'),
+    'waifuendpoll' : ('Wait a bit...')
 }
 
 
@@ -82,8 +102,7 @@ async def on_message(message):
         command = commandArgs[0].lower()
 
         if  command in COMMANDFUNCTION:
-            await COMMANDFUNCTION[command](message, commandArgs)
-            return
+            await handleCallCommandFunction(message, commandArgs)
 
         command = '!waifupoll'
         if  command in message.content.lower():
@@ -101,23 +120,107 @@ async def on_message(message):
             await message.channel.send(content = WAIFU_REPLY, file = discord.File('waifupoll.txt'))
         
            
-        
-        
-    #except Exception as e:
-    #    print(e)
-    #    exit(-1)
-async def handleHeadpat(message, args):
+async def handleCallCommandFunction(message, args):
     command = args[0].lower()
-    if len(args) > 2:
-        commandHelper = args[1].lower()
-        args[1] = args[2]
-        args[0] = args[0] + commandHelper
-        await COMMANDFUNCTION[command+commandHelper](message, args)        
-    elif len(args) == 1:
-        await COMMANDFUNCTION[command+'get'](message, args)
+    if command not in COMMANDFUNCTION or len(args) < REQLENGTH[command]:
+        await handleError(message, args)
+    else:   
+        await COMMANDFUNCTION[command](message, args)
+
+def checkValidSubCommand(args):
+    return (args[0] + args[1]).lower() in COMMANDFUNCTION
+
+async def handleHeadpat(message, args):
+    if len(args) > 1 and checkValidSubCommand(args):
+        await handleSubCommand(message, args)
     else:
-        response = "That isn't how it works. Check !usage " + command
-        message.reply(response)
+        await handleHeadpatGet(message, args)
+    
+async def handleWaifu(message, args):
+    if len(args) > 1  and checkValidSubCommand(args):
+        await handleSubCommand(message, args)
+    else:
+        await handleError(message, args)
+
+async def handleWaifuAdd(message, args):
+    if(len(args) < 3):
+        await handleError(args)
+    name = args[1].replace('_', ' ')
+    url = args[2]
+    hf.addContestant(DATABASE_HOST, message.guild.id, name, url)
+    await message.reply(REPLY['waifuadd'])
+    
+
+async def handleError(message, args):
+    usage = getUsage(args)
+    response = "That isn't how it works. Here:\n" + usage
+    await message.reply(response)
+
+def getUsage(args):
+    if len(args) == 0:
+        return DEFAULTUSAGE
+    command = args[0].lower()
+    if command in USAGE:
+        if len(args) > 1:
+            helperCommand = command + args[1].lower()
+            print(helperCommand)
+            if helperCommand in USAGE:
+                return USAGE[helperCommand]
+        return USAGE[command]
+    return DEFAULTUSAGE
+
+async def handleWaifuStartPoll(message, args):
+    #try:
+    poll = await message.channel.send(REPLY['waifustartpoll'])
+    roundID, contestantNo = hf.startRound(DATABASE_HOST, message.guild.id, f'{poll.channel.id};{poll.id}')
+    #except Exception as e: 
+    #    print(e)
+    #    await message.reply('Something happened')
+    #    return
+    if roundID == -1:
+        await message.reply('Something happened')
+        return
+    await poll.delete()
+    reply = await message.channel.send(f'[ROUND {roundID}] '+DEFAULTPOLLMESSAGE, file = discord.File('poll.jpg'))
+    hf.updateMessageID(DATABASE_HOST, message.guild.id, f'{reply.channel.id};{reply.id}', roundID)
+    for i in range(contestantNo):
+        rString = f'{i}\N{COMBINING ENCLOSING KEYCAP}'
+        await reply.add_reaction(rString)
+    await reply.add_reaction(f'\N{CHEQUERED FLAG}')
+
+async def handleWaifuEndPoll(message, args):
+    #try:
+        roundValues, roundNum = hf.getRoundMessage(DATABASE_HOST, message.guild.id)
+        if roundValues == -1:
+            await message.reply('Something happened')
+            return   
+        print(roundValues)
+        messageID = roundValues[2].split(';')
+        channel = client.get_channel(int(messageID[0]))
+        poll = await channel.fetch_message(int(messageID[1]))
+        votes = []
+        for i in range(len(roundValues[0])):
+            rString = f'1️\N{COMBINING ENCLOSING KEYCAP}'
+            count = 0
+            #await message.add_reaction(emoji)
+            for r in message.reactions:
+                if r.emoji[0] == str(i):
+                    count = r.count - (1 if r.me else 0)
+            votes.append(count)
+        hf.endRound(DATABASE_HOST, message.guild.id, votes, roundValues[0], roundNum)
+        await message.reply('I present to you, the results', files = [discord.File('plot1.jpg'), discord.File('plot2.jpg')])
+
+
+        
+
+async def handleSubCommand(message, args):
+    assert(len(args) > 1)
+    command = args[0].lower()
+    commandHelper = args[1].lower()
+    args = [args[0] + commandHelper] + (args[2:])
+    print(args)
+    await handleCallCommandFunction(message, args)    
+        
 
 
 async def handleHeadpatRemoveImage(message, args):
@@ -145,15 +248,7 @@ async def handleHeadpatGet(message, args):
     await message.reply('There there... Have a headpat, ' + message.author.display_name, embed = embed)
 
 async def handleUsage(message, args):
-    helpCommand = ''
-
-    if(len(args) > 1):
-        helpCommand = args[1].lower()
-
-    if(helpCommand in USAGE):
-        await message.reply(USAGE[helpCommand])
-    else:
-        await message.reply(DEFAULTUSAGE)
+    await message.reply(getUsage(args[1:]))
 
 def getArgs(message):
     return message.content.split(' ')
@@ -221,7 +316,22 @@ COMMANDFUNCTION = {
     '!headpat' : handleHeadpat,
     '!headpataddimage' : handleHeadpatAddImage,
     '!headpatget' : handleHeadpatGet,
-    '!headpatremoveimage' : handleHeadpatRemoveImage
+    '!headpatremoveimage' : handleHeadpatRemoveImage,
+    '!waifu' : handleWaifu,
+    '!waifuadd' : handleWaifuAdd,
+    '!waifustartpoll' : handleWaifuStartPoll,
+    '!waifuendpoll' : handleWaifuEndPoll
 } 
+
+REQLENGTH = {
+    '!usage' : 1,
+    '!headpat' : 1,
+    '!headpataddimage' : 2,
+    '!headpatremoveimage' : 2,
+    '!waifu' : 2,
+    '!waifuadd' : 3,
+    '!waifustartpoll' : 1,
+    '!waifuendpoll' : 1
+}
 
 client.run(TOKEN)

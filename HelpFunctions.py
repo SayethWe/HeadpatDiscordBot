@@ -7,9 +7,10 @@ import psycopg2 as db
 import io
 from urllib import request
 from configparser import ConfigParser
+import traceback
 
 def main() :
-    targetHeight = 800
+    '''targetHeight = 800
     pad=5
     offset=20
     numCol=5
@@ -41,7 +42,8 @@ def main() :
     options=res[1]
     immunities=res[2]
     probability=res[3]
-    print(res)
+    print(res)'''
+
 
     #names=["Kongou (AHnA)","Gawr Gura","Winry Rockbell",
     #       "Mikasa Ackerman","Asuna Yuuki","Kassandra",
@@ -93,26 +95,120 @@ DEFAULTSELECTIVITY = -1
 DEFAULTIMMUNITYSCALE = 1
 DEFAULTPROBABILITY = 2
 
-def createImageDefault(dbURL, guild ,contestants):
+def createImageDefault(contestants,contestantUrls):
+    '''
+    Creates a 5 x 2 poll image with default settings for contestants given
+        DEFAULTPAD = 5
+        DEFAULTOFFSET = 20
+        DEFAULTTARGETHEIGHT = 800px
+        DEFAULTCOLS = 5
+        DEFAULTROWS = 2
+        DEFAULTIMAGENAME = 'poll.jpg' (in current directory)
+    '''
     baseDir = os.path.dirname(__file__)
-    createImage(
+    imgPath = os.path.join(baseDir, 'poll.jpg')
+    cv2.imwrite(imgPath, createImage(
         baseDir, 
         contestants, 
+        contestantUrls,
         range(len(contestants)), 
         DEFAULTTARGETHEIGHT, 
         DEFAULTCOLS,
-        DEFAULTROWS,
         DEFAULTPAD,
-        DEFAULTOFFSET,
-        dbURL,
-        guild
-    )
+        DEFAULTOFFSET
+    ))
+
+def startRound(dbURL, guild, message):
+    '''
+        Starts a new round for the guild given
+        effects: creates a poll image called 'poll.jpg' 
+        returns: round_num
+    '''
+    roundNum = getRoundNum(dbURL, guild)
+    roundValues = getRound(dbURL, guild, roundNum)
+    if roundNum != 0 and not roundValues[1]:
+        print('UNFINISHED ROUND')
+        return -1
+    
+    contestants = getContestants(dbURL, guild)
+    print(contestants)
+    #print(roundValues)
+    names = [row[0] for row in contestants]
+    immunities = [row[1] for row in contestants]
+    probabilities = [row[2] for row in contestants]
+    urls = [row[3] for row in contestants]
+
+    roundNum = roundNum  + 1
+    print(roundNum)
+
+    picks = generateRound(immunities, probabilities, roundNum, 10)
+    chosenContestants = [names[i] for i in picks]
+
+    createImageDefault(chosenContestants, [urls[i] for i in picks])
+
+    storeRoundStart(dbURL, guild, chosenContestants, roundNum, message)
+
+    return roundNum, len(picks)
+
+def calculateRoundDefault(votes, roundNum):
+    return calculateRound(votes, 
+                    DEFAULTPROBABILITY, 
+                    DEFAULTIMMUNITYSCALE,
+                    DEFAULTSELECTIVITY,
+                    roundNum)
+
+def getRoundMessage(dbURL, guild):
+    roundNum = getRoundNum(dbURL, guild)
+    roundValues = getRound(dbURL, guild, roundNum)
+    if roundNum != 0 and roundValues[1]:
+        print('ALREADY ENDED ROUND')
+        return -1
+    return roundValues, roundNum
+
+def updateMessageID(dbURL, guild, message, roundID):
+    command=f"UPDATE rounds SET message = '{message}' WHERE round_num = {roundID} AND guild = '{guild}'"
+    conn=db.connect(dbURL)
+    cur=conn.cursor()
+    try:
+        cur.execute(command)
+        conn.commit()
+    except(Exception, db.DatabaseError) as error:
+        traceback.print_exc()
+    finally:
+        cur.close()
+        conn.close()
+
+def endRound(dbURL, guild, votes, contestants, roundNum):
+    '''
+        Ends a round and displays results
+    '''   
+    print(contestants)
+    print(votes)
+    immprob = calculateRoundDefault(votes, roundNum)
+    print(immprob)
+    immunities = list(immprob[0])
+    probabilities = list(immprob[1])
+    barFig,distFig = generatePlots(contestants, votes)
+    baseDir = os.path.dirname(__file__)
+    imgPath1 = os.path.join(baseDir, 'plot1.jpg')
+    imgPath2 = os.path.join(baseDir, 'plot2.jpg')
+    barFig.savefig(imgPath1)
+    distFig.savefig(imgPath2)
+    
+    for i in range(len(contestants)):
+        updateContestant(dbURL, guild, contestants[i], immunities[i], probabilities[i])
+
+    storeRoundEnd(dbURL, guild, votes, roundNum)    
+    return roundNum
 
 
-def createImage(baseDir,names,iconNums,targetHeight,numCol,numRow,pad,offset,dbURL,guild):
+def createImage(baseDir,names, urls, iconNums,targetHeight,numCol,pad,offset):
     roundSize = len(names)
-    assert(len(iconNums)>=roundSize)
-    assert(numCol*numRow>=roundSize)
+    
+    assert(roundSize != 0)
+    assert(len(iconNums)>=roundSize) 
+    assert(numCol != 0)
+    numRow=int(np.ceil(float(roundSize)/numCol))
 
     longestRow=1
     imgFull=np.full([1,longestRow,3],0,dtype=np.uint8)
@@ -131,7 +227,7 @@ def createImage(baseDir,names,iconNums,targetHeight,numCol,numRow,pad,offset,dbU
             imgName=name+'.png'
             #imgPath=os.path.join(baseDir,'img',imgName)
             iconPath=os.path.join(baseDir,'icon',iconName)
-            url=getImageURL(dbURL, guild, name)
+            url=urls[i]
 
             #read the image
             resp=request.urlopen(url)
@@ -200,9 +296,12 @@ def createImage(baseDir,names,iconNums,targetHeight,numCol,numRow,pad,offset,dbU
         #imgFull = cv2.vconcat([imgFull,imgRow]);
         imgFull = np.concatenate((imgFull,imgRow),0)
 
-    return imgFull;
+    return imgFull
 
 def calculateRound(votes,probOffset,immunityScale,selectivity,roundNum):
+    '''
+        Calculates immunities and probabilities for a round
+    '''
     arr=np.array(votes)
     X=arr[arr!=0]
 
@@ -223,13 +322,13 @@ def calculateRound(votes,probOffset,immunityScale,selectivity,roundNum):
     prob[imm<0]=0
 
     #return future immunities
-    imm[imm>0]=imm[imm>0]+roundNum+1
+    imm[imm>=0]=imm[imm>=0]+roundNum+1
 
     return (imm,prob)
 
-def generateRound(contestants,immunities,probabilities,roundNum,roundSize):
+def generateRound(immunities,probabilities,roundNum,roundSize):
     imm=np.array(immunities)
-    val=np.array(contestants)[imm<roundNum]
+    val=np.array(range(len(immunities)))[imm<roundNum]
     valProb=np.array(probabilities)[imm<roundNum]
     imm=imm[imm<roundNum]
 
@@ -243,15 +342,13 @@ def generateRound(contestants,immunities,probabilities,roundNum,roundSize):
 
     probSum=np.sum(valProb)*np.ones(len(val))
     probs=valProb/probSum
-
-
+    print(probs)
 
     currSize=min(len(val),roundSize)
     #print(val)
     #print(currSize)
     picks=np.random.choice(val,currSize,False,probs)
-
-    return (currSize,picks)
+    return picks
 
 def generatePlots(options, votes):
     votes=np.array(votes);
@@ -288,10 +385,12 @@ def createTables(dbURL):
         """,
         """
         CREATE TABLE IF NOT EXISTS rounds (
-            round_num SERIAL,
-            guild TEXT NOT NULL,
+            round_num INTEGER,
+            guild TEXT,
             names TEXT[] NOT NULL,
-            votes INTEGER[]
+            votes INTEGER[],
+            message TEXT NOT NULL,
+            PRIMARY KEY (guild, round_num)
             )
         """,
         """
@@ -332,12 +431,12 @@ def addHeadpat(dbURL,guildID,url):
         guildID: guild ID
         url: Image of the headpat
     '''
-    command = "INSERT INTO headpats(guild, url) VALUES (%s,%s)"
-    conn=db.connect(dbURL);
+    command = f"INSERT INTO headpats(guild, url) VALUES ('{guildID}',%s)"
+    conn=db.connect(dbURL)
     cur = conn.cursor()
     res = False
     try:
-        cur.execute(command, (guildID,url))
+        cur.execute(command, (url))
         conn.commit()
         res = True
     except (Exception, db.DatabaseError) as error:
@@ -386,35 +485,37 @@ def removeHeadpat(dbURL,guildID,url):
         conn.close()
     return res
 
-def addContestant(dbURL,title,name,imageURL):
-    command = """
+def addContestant(dbURL,guild,name,imageURL):
+    command = f"""
             INSERT INTO entrants(name, guild, immunity, probability, image)
-            VALUES (%s,%s,0,1,%s)
+            VALUES (%s,'{guild}',0,1,%s)
             """
-    conn=db.connect(dbURL);
+    conn=db.connect(dbURL)
     cur = conn.cursor()
+    res = False
     try:
-        cur.execute(command, (name,title,imageURL))
+        cur.execute(command, (name,imageURL))
         conn.commit()
+        res = True
     except (Exception, db.DatabaseError) as error:
         print(error)
+        res = False
     finally:
         cur.close()
         conn.close()
+    return res
 
-def updateContestant(dbURL,title,name,immunity,probability):
-    command= """
+def updateContestant(dbURL,guild,name,immunity,probability):
+    command= f"""
         UPDATE entrants
-        SET guild = %s
-        SET immunity = %s
-        SET probability = %s
+        SET (immunity,probability) = (%s,%s)
         WHERE name = %s
-        AND guild = %s
+        AND guild = '{guild}'
         """
     conn=db.connect(dbURL);
     cur=conn.cursor()
     try:
-        cur.execute(command, (immunity, probability, name, title))
+        cur.execute(command, (immunity, probability, name))
         conn.commit()
     except (Exception, db.DatabaseError) as error:
         print(error)
@@ -423,11 +524,11 @@ def updateContestant(dbURL,title,name,immunity,probability):
         conn.close()
 
 def deleteContestant(dbURL,title,name):
-    command="DELETE FROM entrants WHERE name = %s AND guild = %s"
+    command=f"DELETE FROM entrants WHERE name = %s AND guild = '{guild}'"
     conn=db.connect(dbURL);
     cur=conn.cursor()
     try:
-        cur.execute(command, (name,title))
+        cur.execute(command, (name))
         url=cur.fetchone()[0]
         conn.commit()
     except (Exception, db.DatabaseError) as error:
@@ -436,14 +537,14 @@ def deleteContestant(dbURL,title,name):
         cur.close()
         conn.close()
 
-def getImageURL(dbURL,title,name):
-    command = "SELECT image FROM entrants WHERE name = %s AND guild = %s"
+def getImageURL(dbURL,guild,name):
+    command = f"SELECT image FROM entrants WHERE name = %s AND guild = '{guild}'"
 
     url=""
     conn=db.connect(dbURL);
     cur=conn.cursor()
     try:
-        cur.execute(command, (name,title))
+        cur.execute(command, (name))
         url=cur.fetchone()[0]
         conn.commit()
     except (Exception, db.DatabaseError) as error:
@@ -453,29 +554,12 @@ def getImageURL(dbURL,title,name):
         conn.close()
     return url
 
-def storeRoundStart(dbURL,title,names):
-    command="INSERT INTO rounds(guild, names) VALUES(%s, %s) RETURNING round_num"
-    conn=db.connect(dbURL);
-    cur=conn.cursor()
-    roundNum=-1;
-    try:
-        cur.execute(command, (title, list(names)))
-        conn.commit()
-        roundNum=cur.fetchone()[0]
-    except(Exception, db.DatabaseError) as error:
-        print(error)
-    finally:
-        cur.close()
-        conn.close()
-    return roundNum
-
-
-def storeRoundEnd(dbURL,title,votes,roundNum):
-    command="UPDATE rounds SET votes = %s WHERE round_num = %s AND guild = %s"
-    conn=db.connect(dbURL);
+def storeRoundStart(dbURL,guild,names, roundNum, message):
+    command=f"INSERT INTO rounds(guild, names, round_num, message) VALUES('{guild}', %s, %s, '{message}')"
+    conn=db.connect(dbURL)
     cur=conn.cursor()
     try:
-        cur.execute(command, (list(votes), roundNum, title))
+        cur.execute(command, (list(names), roundNum))
         conn.commit()
     except(Exception, db.DatabaseError) as error:
         print(error)
@@ -483,15 +567,29 @@ def storeRoundEnd(dbURL,title,votes,roundNum):
         cur.close()
         conn.close()
 
-def getRound(dbURL,title,roundNum):
-    command="SELECT * FROM rounds WHERE round_num = %f AND guild = %s"
-    conn=db.connect(dbURL);
+
+def storeRoundEnd(dbURL,guild,votes,roundNum):
+    command=f"UPDATE rounds SET votes = %s WHERE round_num = %s AND guild = '{guild}'"
+    conn=db.connect(dbURL)
+    cur=conn.cursor()
+    try:
+        cur.execute(command, (list(votes), roundNum))
+        conn.commit()
+    except(Exception, db.DatabaseError) as error:
+        print(error)
+    finally:
+        cur.close()
+        conn.close()
+
+def getRound(dbURL,guild,roundNum):
+    command= f"SELECT names, votes, message FROM rounds WHERE round_num = {roundNum} AND guild = '{guild}'"
+    conn=db.connect(dbURL)
     cur=conn.cursor()
     res=""
     try:
-        cur.execute(command, (roundNum, title))
+        cur.execute(command)
         conn.commit()
-        res=cur.fetchall()
+        res=cur.fetchone()
     except (Exception, db.DatabaseError) as error:
         print(error)
     finally:
@@ -499,15 +597,22 @@ def getRound(dbURL,title,roundNum):
         conn.close()
     return res
 
-def getRoundNum(dbURL,title):
-    command="SELECT round_num FROM rounds WHERE guild = %s ORDER BY round_num DESC LIMIT 1"
-    conn=db.connect(dbURL);
+def getRoundNum(dbURL,guild):
+    '''
+    gets the latest round number for the guild
+    '''
+    command=f"SELECT MAX(round_num) FROM rounds WHERE guild = '{guild}'"
+    conn=db.connect(dbURL)
     cur=conn.cursor()
     res=0
     try:
-        cur.execute(command, (title))
+        cur.execute(command)
         conn.commit()
-        res=cur.fetchone()[1]
+        res=cur.fetchone()
+        if len(res) == 0 or not res[0]:
+            res = 0
+        else:
+            res = res[0]
     except (Exception, db.DatabaseError) as error:
         print(error)
     finally:
@@ -516,12 +621,12 @@ def getRoundNum(dbURL,title):
     return res
 
 def getContestants(dbURL,guildID):
-    command="SELECT name, immunity, probability, image from entrants WHERE guild = %s"
+    command= f"SELECT name, immunity, probability, image from entrants WHERE guild = '{guildID}'"
     conn=db.connect(dbURL)
     cur=conn.cursor()
     res=[-1,-1,-1]
     try:
-        cur.execute(command, (guildID))
+        cur.execute(command)
         conn.commit()
         res=cur.fetchall()
     except (Exception, db.DatabaseError) as error:
