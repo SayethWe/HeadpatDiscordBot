@@ -203,10 +203,11 @@ async def handleWaifuEndPoll(message, args):
             rString = f'1️\N{COMBINING ENCLOSING KEYCAP}'
             count = 0
             #await message.add_reaction(emoji)
-            for r in message.reactions:
+            for r in poll.reactions:
                 if r.emoji[0] == str(i):
                     count = r.count - (1 if r.me else 0)
             votes.append(count)
+        print(votes)
         hf.endRound(DATABASE_HOST, message.guild.id, votes, roundValues[0], roundNum)
         await message.reply('I present to you, the results', files = [discord.File('plot1.jpg'), discord.File('plot2.jpg')])
 

@@ -93,7 +93,7 @@ DEFAULTCOLS = 5
 DEFAULTROWS = 2
 DEFAULTSELECTIVITY = -1
 DEFAULTIMMUNITYSCALE = 1
-DEFAULTPROBABILITY = 2
+DEFAULTPROBABILITY = 1
 
 def createImageDefault(contestants,contestantUrls):
     '''
@@ -184,10 +184,10 @@ def endRound(dbURL, guild, votes, contestants, roundNum):
     '''
     print(contestants)
     print(votes)
-    immprob = calculateRoundDefault(votes, roundNum)
+    immprob = calculateRoundDefault(contestants,votes, roundNum)
     print(immprob)
-    immunities = list(immprob[0])
-    probabilities = list(immprob[1])
+    immunities = immprob[0]
+    probabilities = immprob[1]
     barFig,distFig = generatePlots(contestants, votes)
     baseDir = os.path.dirname(__file__)
     imgPath1 = os.path.join(baseDir, 'plot1.jpg')
@@ -301,32 +301,36 @@ def createImage(baseDir,names, urls, iconNums,targetHeight,numCol,pad,offset):
 def calculateRound(contestants,votes,probOffset,immunityScale,selectivity,roundNum):
     '''
         Calculates immunities and probabilities for a round
-    '''
+    ''' 
+    print(contestants)
+    print(votes)   
+    ones=np.ones(len(votes))
     arr=np.array(votes)
     con=np.array(contestants)
     print(arr)
     X=arr[arr!=0]
     print(X)
-    if (len(X)==0):
-        imm=zeros(len(arr))
-        prob=zeros(len(arr))
+    if len(X)==0:
+        print('ZERO')
+        imm=-1*np.ones(len(arr))
+        prob=np.zeros(len(arr))
         elim=con
         return (imm,prob,elim)
 
     mean = np.mean(X)
-    dev = np.std(X)
-
-
-    ones=np.ones(len(votes))
+    dev = np.std(X)    
     marr=mean*ones
     sarr=dev*ones
 
     elim=con[votes<marr+selectivity*sarr]
 
+    if dev == 0:
+        imm = np.zeros(len(votes))
+    else:
+        imm=np.floor(immunityScale*((arr-marr)/sarr-selectivity))
 
-    prob=ones/(probOffset+arr)
-    imm=np.floor(immunityScale*((arr-marr)/sarr-selectivity))
-
+    prob=ones/(1+probOffset+arr)
+    
     #Eliminate zero votes
     imm[arr==0]=-1
     #set prob to 0 for all ejected
@@ -362,8 +366,10 @@ def generateRound(immunities,probabilities,roundNum,roundSize):
     return picks
 
 def generatePlots(options, votes):
-    votes=np.array(votes);
-    cut=np.mean(votes[votes>0])-np.std(votes[votes>0])
+    votes=np.array(votes)
+    cut=0
+    if len(votes[votes>0])!=0 :
+        cut=np.mean(votes[votes>0])-np.std(votes[votes>0])
 
     barFig=plt.figure()
     plt.bar(options,votes)
@@ -374,7 +380,7 @@ def generatePlots(options, votes):
 
     distFig=plt.figure()
     plt.hist(votes,np.array(range(np.max(votes)+1))-0.5,None,True)
-    plt.plot(np.array([cut,cut]),plt.gca().get_ylim(),'r-');
+    plt.plot(np.array([cut,cut]),plt.gca().get_ylim(),'r-')
     plt.xlabel('Votes')
     plt.ylabel('Count')
     plt.title('Distribution of Votes')
