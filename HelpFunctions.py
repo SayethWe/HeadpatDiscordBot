@@ -263,7 +263,7 @@ def createImage(baseDir,names, urls, iconNums,targetHeight,numCol,pad,offset):
 
             #resize image
             dsize=(targetWidth, targetHeight)
-            imgResize=cv2.resize(imgRaw,dsize);
+            imgResize=cv2.resize(imgRaw,dsize)
 
             #read and resize the icon
             iconRaw=cv2.imread(iconPath)
@@ -503,7 +503,7 @@ def getHeadpat(dbURL,guildID):
 
 def removeHeadpat(dbURL,guildID,url):
     command=f"DELETE FROM headpats WHERE guild='{guildID}' AND url = '{url}'"
-    conn=db.connect(dbURL);
+    conn=db.connect(dbURL)
     cur = conn.cursor()
     res = False
     try:
