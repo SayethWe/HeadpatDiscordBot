@@ -285,6 +285,7 @@ async def handleWaifuAddCSV(message : discord.Message, args):
     await attachments[0].save(csvPath)
     with open(csvPath, 'r') as f:
         for line in f.readlines():
+            print(line)
             args = line.split(';')
             code = waifuAdd(message, args)
     message.reply(REPLY['waifuaddcsv'])
