@@ -142,6 +142,9 @@ def startRound(dbURL, guild, message):
     print(roundNum)
 
     picks = generateRound(immunities, probabilities, roundNum, 10)
+    if(not picks):
+        print('NO VALID PICKS')
+        return -2
     chosenContestants = [names[i] for i in picks]
 
     createImageDefault(chosenContestants, [urls[i] for i in picks])
@@ -353,8 +356,9 @@ def generateRound(immunities,probabilities,roundNum,roundSize):
     val=val[imm>=0]
     valProb=valProb[imm>=0]
     imm=imm[imm>=0]
-
-
+    if(len(val) == 0):
+        return []
+    
     probSum=np.sum(valProb)*np.ones(len(val))
     probs=valProb/probSum
     print(probs)
@@ -367,8 +371,8 @@ def generateRound(immunities,probabilities,roundNum,roundSize):
 
 def generatePlots(options, votes):
     votes=np.array(votes)
-    cut=0
-    if len(votes[votes>0])!=0 :
+    cut = 0
+    if len(votes[votes>0]) != 0:
         cut=np.mean(votes[votes>0])-np.std(votes[votes>0])
 
     barFig=plt.figure()

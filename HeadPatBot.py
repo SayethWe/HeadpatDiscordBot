@@ -66,7 +66,10 @@ REPLY = {
     'waifuadd' : ("Waifu Waifu Waifu! More Waifu!\n"
                   "They've been added to the pool"),
     'waifustartpoll' : ('Just a sec...'),
-    'waifuendpoll' : ('Wait a bit...')
+    'waifuendpoll' : ('Wait a bit...'),
+    'unhandled' : 'Something happened, report this to the devs\nhttps://github.com/SayethWe/HeadpatDiscordBot/issues',
+    'unfinishedpoll' : 'Nah uh uh, you have an unfinsihed poll, call !waifu endpoll starting a new one',
+    'novalidpicks' : 'Not enough waifu, MOAR needed.\nYour waifus need a break, you know.'
 }
 
 
@@ -170,17 +173,21 @@ def getUsage(args):
     return DEFAULTUSAGE
 
 async def handleWaifuStartPoll(message, args):
-    #try:
-    poll = await message.channel.send(REPLY['waifustartpoll'])
-    roundID, contestantNo = hf.startRound(DATABASE_HOST, message.guild.id, f'{poll.channel.id};{poll.id}')
-    #except Exception as e: 
-    #    print(e)
-    #    await message.reply('Something happened')
-    #    return
-    if roundID == -1:
-        await message.reply('Something happened')
+    try:
+        poll = await message.channel.send(REPLY['waifustartpoll'])
+        roundID, contestantNo = hf.startRound(DATABASE_HOST, message.guild.id, f'{poll.channel.id};{poll.id}')
+    except Exception as e: 
+        print(e)
+        await message.reply(REPLY['unhandled'])
         return
     await poll.delete()
+    if roundID == -1:
+        await message.reply(REPLY['unfinishedpoll'])
+        return
+    if roundID == -2:
+        await message.reply(REPLY['novalidpicks'])
+        return
+    
     reply = await message.channel.send(f'[ROUND {roundID}] '+DEFAULTPOLLMESSAGE, file = discord.File('poll.jpg'))
     hf.updateMessageID(DATABASE_HOST, message.guild.id, f'{reply.channel.id};{reply.id}', roundID)
     for i in range(contestantNo):
@@ -189,11 +196,14 @@ async def handleWaifuStartPoll(message, args):
     await reply.add_reaction(f'\N{CHEQUERED FLAG}')
 
 async def handleWaifuEndPoll(message, args):
-    #try:
-        roundValues, roundNum = hf.getRoundMessage(DATABASE_HOST, message.guild.id)
+    try:
+        roundVal = hf.getRoundMessage(DATABASE_HOST, message.guild.id)
         if roundValues == -1:
-            await message.reply('Something happened')
-            return   
+            await message.reply(REPLY['endedpoll'])
+            return  
+        roundValues = roundVal[0]
+        roundNum = roundVal[1]
+ 
         print(roundValues)
         messageID = roundValues[2].split(';')
         channel = client.get_channel(int(messageID[0]))
@@ -237,11 +247,17 @@ async def handleHeadpatGet(message, args):
     try:
         while(True):
             url = hf.getHeadpat(DATABASE_HOST, message.guild.id)
-            if await verifyURL(url):
+            if not url:
+                setDefaultHeadpat(embed)
+                break
+            elif await verifyURL(url):
                 embed.set_image(url=url)
                 break
             else:
-                await removeImage(url, message)                     
+                if await removeImage(url, message) == REPLY['imagedne']:
+                    setDefaultHeadpat(embed)
+                    break
+
     except Exception as e:
         print(e)
         setDefaultHeadpat(embed)
