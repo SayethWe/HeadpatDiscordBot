@@ -69,7 +69,8 @@ REPLY = {
     'waifuendpoll' : ('Wait a bit...'),
     'unhandled' : 'Something happened, report this to the devs\nhttps://github.com/SayethWe/HeadpatDiscordBot/issues',
     'unfinishedpoll' : 'Nah uh uh, you have an unfinsihed poll, call !waifu endpoll starting a new one',
-    'novalidpicks' : 'Not enough waifu, MOAR needed.\nYour waifus need a break, you know.'
+    'novalidpicks' : 'Not enough waifu, MOAR needed.\nYour waifus need a break, you know.',
+    'endedpoll' : 'We already recorded and finished the poll. You can use !waifu pollresults to get results from now on'
 }
 
 
@@ -198,28 +199,33 @@ async def handleWaifuStartPoll(message, args):
 async def handleWaifuEndPoll(message, args):
     try:
         roundVal = hf.getRoundMessage(DATABASE_HOST, message.guild.id)
-        if roundValues == -1:
-            await message.reply(REPLY['endedpoll'])
-            return  
-        roundValues = roundVal[0]
-        roundNum = roundVal[1]
- 
-        print(roundValues)
-        messageID = roundValues[2].split(';')
-        channel = client.get_channel(int(messageID[0]))
-        poll = await channel.fetch_message(int(messageID[1]))
-        votes = []
-        for i in range(len(roundValues[0])):
-            rString = f'1️\N{COMBINING ENCLOSING KEYCAP}'
-            count = 0
-            #await message.add_reaction(emoji)
-            for r in poll.reactions:
-                if r.emoji[0] == str(i):
-                    count = r.count - (1 if r.me else 0)
-            votes.append(count)
-        print(votes)
-        hf.endRound(DATABASE_HOST, message.guild.id, votes, roundValues[0], roundNum)
-        await message.reply('I present to you, the results', files = [discord.File('plot1.jpg'), discord.File('plot2.jpg')])
+    except Exception as e: 
+        print(e)
+        await message.reply(REPLY['unhandled'])
+        return
+
+    if roundValues == -1:
+        await message.reply(REPLY['endedpoll'])
+        return  
+    roundValues = roundVal[0]
+    roundNum = roundVal[1]
+
+    print(roundValues)
+    messageID = roundValues[2].split(';')
+    channel = client.get_channel(int(messageID[0]))
+    poll = await channel.fetch_message(int(messageID[1]))
+    votes = []
+    for i in range(len(roundValues[0])):
+        rString = f'1️\N{COMBINING ENCLOSING KEYCAP}'
+        count = 0
+        #await message.add_reaction(emoji)
+        for r in poll.reactions:
+            if r.emoji[0] == str(i):
+                count = r.count - (1 if r.me else 0)
+        votes.append(count)
+    print(votes)
+    hf.endRound(DATABASE_HOST, message.guild.id, votes, roundValues[0], roundNum)
+    await message.reply('I present to you, the results', files = [discord.File('plot1.jpg'), discord.File('plot2.jpg')])
 
 
         
