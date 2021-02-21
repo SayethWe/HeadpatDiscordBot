@@ -3,7 +3,8 @@ import os
 import random
 import urllib
 import HelpFunctions as hf
-
+import traceback
+import RoleControl as rc
 import discord
 from configparser import ConfigParser
 
@@ -70,7 +71,10 @@ REPLY = {
     'unhandled' : 'Something happened, report this to the devs\nhttps://github.com/SayethWe/HeadpatDiscordBot/issues',
     'unfinishedpoll' : 'Nah uh uh, you have an unfinsihed poll, call !waifu endpoll starting a new one',
     'novalidpicks' : 'Not enough waifu, MOAR needed.\nYour waifus need a break, you know.',
-    'endedpoll' : 'We already recorded and finished the poll. You can use !waifu pollresults to get results from now on'
+    'endedpoll' : 'We already recorded and finished the poll. You can use !waifu pollresults to get results from now on',
+    'nopollmade' : 'You gotta start a poll first',
+    'polldne' : "The message with the previous poll might have been deleted, I can't find it",
+    'forbidden' : "You can't do that, go ask a mod"
 }
 
 
@@ -106,7 +110,11 @@ async def on_message(message):
         command = commandArgs[0].lower()
 
         if  command in COMMANDFUNCTION:
-            await handleCallCommandFunction(message, commandArgs)
+            try:
+                await handleCallCommandFunction(message, commandArgs)
+            except:
+                traceback.print_exc()
+                await message.reply(REPLY['unhandled'])
 
         command = '!waifupoll'
         if  command in message.content.lower():
@@ -126,10 +134,16 @@ async def on_message(message):
            
 async def handleCallCommandFunction(message, args):
     command = args[0].lower()
-    if command not in COMMANDFUNCTION or len(args) < REQLENGTH[command]:
+    if command in COMMANDFUNCTION:
+        if rc.ROLECONTROLDEFAULT[command](message):
+            if len(args) >= REQLENGTH[command]:
+                await COMMANDFUNCTION[command](message, args)
+            else:
+                await handleError(message, args)
+        else:
+            await message.reply(REPLY['forbidden'])
+    else:
         await handleError(message, args)
-    else:   
-        await COMMANDFUNCTION[command](message, args)
 
 def checkValidSubCommand(args):
     return (args[0] + args[1]).lower() in COMMANDFUNCTION
@@ -151,7 +165,7 @@ async def handleWaifuAdd(message, args):
         await handleError(args)
     name = args[1].replace('_', ' ')
     url = args[2]
-    hf.addContestant(DATABASE_HOST, message.guild.id, name, url)
+    code = hf.addContestant(DATABASE_HOST, message.guild.id, name, url)
     await message.reply(REPLY['waifuadd'])
     
 
@@ -179,6 +193,7 @@ async def handleWaifuStartPoll(message, args):
         roundID, contestantNo = hf.startRound(DATABASE_HOST, message.guild.id, f'{poll.channel.id};{poll.id}')
     except Exception as e: 
         print(e)
+        await poll.delete()
         await message.reply(REPLY['unhandled'])
         return
     await poll.delete()
@@ -198,22 +213,38 @@ async def handleWaifuStartPoll(message, args):
 
 async def handleWaifuEndPoll(message, args):
     try:
+        reply = await message.channel.send(REPLY['waifuendpoll'])
         roundVal = hf.getRoundMessage(DATABASE_HOST, message.guild.id)
     except Exception as e: 
         print(e)
+        await reply.delete()
         await message.reply(REPLY['unhandled'])
         return
 
-    if roundValues == -1:
+    if roundVal == -1:
+        await reply.delete()
         await message.reply(REPLY['endedpoll'])
-        return  
+        return 
+    if roundVal == -2:
+        await reply.delete()
+        await message.reply(REPLY['nopollmade'])
+
     roundValues = roundVal[0]
     roundNum = roundVal[1]
 
     print(roundValues)
     messageID = roundValues[2].split(';')
     channel = client.get_channel(int(messageID[0]))
+    if not channel:
+        print('NO CHANNEL')
+        await reply.delete()
+        await message.reply(REPLY['polldne'])
     poll = await channel.fetch_message(int(messageID[1]))
+    if not poll:
+        print('NO MESSAGE')
+        await reply.delete()
+        await message.reply(REPLY['polldne'])
+    
     votes = []
     for i in range(len(roundValues[0])):
         rString = f'1️\N{COMBINING ENCLOSING KEYCAP}'
@@ -225,6 +256,7 @@ async def handleWaifuEndPoll(message, args):
         votes.append(count)
     print(votes)
     hf.endRound(DATABASE_HOST, message.guild.id, votes, roundValues[0], roundNum)
+    await reply.delete()
     await message.reply('I present to you, the results', files = [discord.File('plot1.jpg'), discord.File('plot2.jpg')])
 
 
@@ -246,7 +278,16 @@ async def handleHeadpatRemoveImage(message, args):
 
 async def handleHeadpatAddImage(message, args):
     url = args[1]
-    await message.reply(await addImage(url, message))
+    reply = REPLY['unhandled']
+    if not await verifyURL(url):
+        reply =  REPLY['urlbroken']
+    else:
+        added = hf.addHeadpat(DATABASE_HOST, message.guild.id, url)
+        if added == 0:
+            reply = REPLY['addimage']
+        elif added == -1:
+            reply = REPLY['existingurl']
+    await message.reply(reply)
 
 async def handleHeadpatGet(message, args):
     embed = discord.Embed()
@@ -298,14 +339,6 @@ async def removeImage(url, message):
     else:
         return REPLY['imagedne']
 
-async def addImage(url, message):
-    if not await verifyURL(url):
-        return REPLY['urlbroken']
-    added = hf.addHeadpat(DATABASE_HOST, message.guild.id, url)
-    if added:
-        return REPLY['addimage']
-    return REPLY['existingurl']
-
 async def verifyURL(url):
     try:
         image_formats = ("image/png", "image/jpeg", "image/jpg", "image/gif")
@@ -315,9 +348,8 @@ async def verifyURL(url):
             return True  
         return False
     except Exception as e:
-        print(e)
+        traceback.print_exc()
         return False
-    return True
 
 async def make_file(message):
     message = await message.channel.fetch_message(message.id)

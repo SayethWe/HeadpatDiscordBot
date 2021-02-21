@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import psycopg2 as db
+import psycopg2.errorcodes as errorcodes
 import io
 from urllib import request
 from configparser import ConfigParser
@@ -142,7 +143,7 @@ def startRound(dbURL, guild, message):
     print(roundNum)
 
     picks = generateRound(immunities, probabilities, roundNum, 10)
-    if(not picks):
+    if picks == []:
         print('NO VALID PICKS')
         return -2
     chosenContestants = [names[i] for i in picks]
@@ -162,7 +163,11 @@ def calculateRoundDefault(contestants,votes, roundNum):
 
 def getRoundMessage(dbURL, guild):
     roundNum = getRoundNum(dbURL, guild)
+    if roundNum == 0:
+        print('NO ROUND')
+        return -2
     roundValues = getRound(dbURL, guild, roundNum)
+
     if roundNum != 0 and roundValues[1]:
         print('ALREADY ENDED ROUND')
         return -1
@@ -452,17 +457,24 @@ def addHeadpat(dbURL,guildID,url):
         guildID: guild ID
         url: Image of the headpat
     '''
-    command = f"INSERT INTO headpats(guild, url) VALUES ('{guildID}',%s)"
-    conn=db.connect(dbURL)
-    cur = conn.cursor()
-    res = False
+    command = f"INSERT INTO headpats(guild, url) VALUES ('{guildID}','{url}')"
+    res = -2
     try:
-        cur.execute(command, (url))
+        conn=db.connect(dbURL)
+        cur = conn.cursor()
+        cur.execute(command)
         conn.commit()
-        res = True
-    except (Exception, db.DatabaseError) as error:
-        print(error)
-        res = False
+        res = 0
+    except db.DatabaseError as error:
+        traceback.print_exc()
+        print(errorcodes.lookup(error.pgcode))
+        print(errorcodes.UNIQUE_VIOLATION)
+        if error.pgcode == errorcodes.UNIQUE_VIOLATION:
+            res = -1
+        else:
+            res = -2
+    except Exception as error:
+        res = -2        
     finally:
         cur.close()
         conn.close()
@@ -509,13 +521,13 @@ def removeHeadpat(dbURL,guildID,url):
 def addContestant(dbURL,guild,name,imageURL):
     command = f"""
             INSERT INTO entrants(name, guild, immunity, probability, image)
-            VALUES (%s,'{guild}',0,1,%s)
+            VALUES ('{name}','{guild}',0,1,'{imageURL}')
             """
     conn=db.connect(dbURL)
     cur = conn.cursor()
     res = False
     try:
-        cur.execute(command, (name,imageURL))
+        cur.execute(command)
         conn.commit()
         res = True
     except (Exception, db.DatabaseError) as error:
