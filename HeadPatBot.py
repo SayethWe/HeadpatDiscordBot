@@ -113,9 +113,9 @@ async def on_message(message):
         if  command in COMMANDFUNCTION:
             try:
                 await handleCallCommandFunction(message, commandArgs)
-            except:
+            except Exception as e:
                 traceback.print_exc()
-                await message.reply(REPLY['unhandled'])
+                await message.reply(REPLY['unhandled'] + '\n' + e)
 
         command = '!waifupoll'
         if  command in message.content.lower():
@@ -305,7 +305,7 @@ async def handleWaifuAddCSV(message : discord.Message, args):
             print(line)
             args = line.split(',')
             code = waifuAdd(message, args)
-    message.reply(REPLY['waifuaddcsv'])
+    await message.reply(REPLY['waifuaddcsv'])
 
 async def handleHeadpatRemoveImage(message, args):
     url = args[1]
