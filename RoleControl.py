@@ -20,5 +20,6 @@ ROLECONTROLDEFAULT = {
     '!waifuadd' : allowAll,
     '!waifustartpoll' : allowMod,
     '!waifuendpoll' : allowMod,
-    '!waifuaddcsv' : allowMod
+    '!waifuaddcsv' : allowMod,
+    '!waifupollresults' : allowAll
 }

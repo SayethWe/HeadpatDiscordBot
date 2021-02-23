@@ -103,7 +103,7 @@ async def on_message_edit(before, after):
 async def on_message(message):
     #try:
         print(message.content)
-        if message.author == client.user:
+        if message.author.id in (813127605502214184, 807859649621524490):
             return
         
         commandArgs = getArgs(message)
@@ -272,8 +272,24 @@ async def handleSubCommand(message, args):
     commandHelper = args[1].lower()
     args = [args[0] + commandHelper] + (args[2:])
     print(args)
-    await handleCallCommandFunction(message, args)    
-        
+    await handleCallCommandFunction(message, args) 
+
+async def handleWaifuPollResults(message, args):
+    roundNum = -1
+    reply = await message.channel.send(REPLY['waifuendpoll'])
+    if len(args) > 1 and args[1].isnumeric():
+        roundNum = args[1]
+    else:
+        roundNum = hf.getRoundNum(DATABASE_HOST, message.guild.id)
+    data = hf.getRound(DATABASE_HOST, message.guild.id, roundNum)
+    if data == -1:
+        await reply.delete()
+        await message.reply(REPLY['noround'])
+    
+    hf.getRoundResults(data[1], data[0], roundNum)
+    await reply.delete()
+    await message.reply('I present to you, the results', files = [discord.File('plot1.jpg'), discord.File('plot2.jpg')])
+    
 
 async def handleWaifuAddCSV(message : discord.Message, args):
     attachments = message.attachments
@@ -286,7 +302,7 @@ async def handleWaifuAddCSV(message : discord.Message, args):
     with open(csvPath, 'r') as f:
         for line in f.readlines():
             print(line)
-            args = line.split(';')
+            args = line.split(',')
             code = waifuAdd(message, args)
     message.reply(REPLY['waifuaddcsv'])
 
@@ -399,7 +415,8 @@ COMMANDFUNCTION = {
     '!waifuadd' : handleWaifuAdd,
     '!waifustartpoll' : handleWaifuStartPoll,
     '!waifuendpoll' : handleWaifuEndPoll,
-    '!waifuaddcsv' : handleWaifuAddCSV
+    '!waifuaddcsv' : handleWaifuAddCSV,
+    '!waifupollresults' : handleWaifuPollResults
 } 
 
 REQLENGTH = {
@@ -411,7 +428,8 @@ REQLENGTH = {
     '!waifuadd' : 3,
     '!waifustartpoll' : 1,
     '!waifuendpoll' : 1,
-    '!waifuaddcsv' : 1
+    '!waifuaddcsv' : 1,
+    '!waifupollresults' : 1
 }
 
 client.run(TOKEN)
