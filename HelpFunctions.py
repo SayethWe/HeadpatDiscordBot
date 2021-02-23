@@ -401,11 +401,12 @@ def createTables(dbURL):
     commands = (
         """
         CREATE TABLE IF NOT EXISTS entrants (
-            name TEXT PRIMARY KEY,
+            name TEXT,
             guild TEXT NOT NULL,
             immunity INTEGER NOT NULL,
             probability FLOAT NOT NULL,
-            image TEXT NOT NULL
+            image TEXT NOT NULL,
+            PRIMARY KEY (name, guild)
             )
         """,
         """

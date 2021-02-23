@@ -74,7 +74,8 @@ REPLY = {
     'endedpoll' : 'We already recorded and finished the poll. You can use !waifu pollresults to get results from now on',
     'nopollmade' : 'You gotta start a poll first',
     'polldne' : "The message with the previous poll might have been deleted, I can't find it",
-    'forbidden' : "You can't do that, go ask a mod"
+    'forbidden' : "You can't do that, go ask a mod",
+    'waifuaddcsv' : 'Waifus added. So much waifu. Fwoooooo'
 }
 
 
