@@ -103,7 +103,7 @@ async def on_message_edit(before, after):
 async def on_message(message):
     #try:
         print(message.content)
-        if message.author == client.user:
+        if message.author.id in (813127605502214184, 807859649621524490):
             return
         
         commandArgs = getArgs(message)
@@ -161,12 +161,16 @@ async def handleWaifu(message, args):
         await handleError(message, args)
 
 async def handleWaifuAdd(message, args):
-    if(len(args) < 3):
-        await handleError(args)
-    name = args[1].replace('_', ' ')
-    url = args[2]
-    code = hf.addContestant(DATABASE_HOST, message.guild.id, name, url)
+    code = waifuAdd(message, [args[1], 0, 1, args[2]])
     await message.reply(REPLY['waifuadd'])
+
+def waifuAdd(message, args):
+    name = args[0].replace('_', ' ')
+    immunity = int(args[1])
+    probability = float(args[2])
+    url = args[3]
+    code = hf.addContestant(DATABASE_HOST, message.guild.id, name, immunity, probability, url)
+    return code
     
 
 async def handleError(message, args):
@@ -268,9 +272,39 @@ async def handleSubCommand(message, args):
     commandHelper = args[1].lower()
     args = [args[0] + commandHelper] + (args[2:])
     print(args)
-    await handleCallCommandFunction(message, args)    
-        
+    await handleCallCommandFunction(message, args) 
 
+async def handleWaifuPollResults(message, args):
+    roundNum = -1
+    reply = await message.channel.send(REPLY['waifuendpoll'])
+    if len(args) > 1 and args[1].isnumeric():
+        roundNum = args[1]
+    else:
+        roundNum = hf.getRoundNum(DATABASE_HOST, message.guild.id)
+    data = hf.getRound(DATABASE_HOST, message.guild.id, roundNum)
+    if data == -1:
+        await reply.delete()
+        await message.reply(REPLY['noround'])
+    
+    hf.getRoundResults(data[1], data[0], roundNum)
+    await reply.delete()
+    await message.reply('I present to you, the results', files = [discord.File('plot1.jpg'), discord.File('plot2.jpg')])
+    
+
+async def handleWaifuAddCSV(message : discord.Message, args):
+    attachments = message.attachments
+    if len(attachments) == 0:
+        await handleError(message, args)
+        return
+    baseDir = os.path.dirname(__file__)
+    csvPath = os.path.join(baseDir, f'waifu{message.guild.id}.csv')
+    await attachments[0].save(csvPath)
+    with open(csvPath, 'r') as f:
+        for line in f.readlines():
+            print(line)
+            args = line.split(',')
+            code = waifuAdd(message, args)
+    message.reply(REPLY['waifuaddcsv'])
 
 async def handleHeadpatRemoveImage(message, args):
     url = args[1]
@@ -278,8 +312,12 @@ async def handleHeadpatRemoveImage(message, args):
 
 async def handleHeadpatAddImage(message, args):
     url = args[1]
+    reply = headpatAddImage(message,url)
+    await message.reply(reply)
+
+def headpatAddImage(message, url):
     reply = REPLY['unhandled']
-    if not await verifyURL(url):
+    if not verifyURL(url):
         reply =  REPLY['urlbroken']
     else:
         added = hf.addHeadpat(DATABASE_HOST, message.guild.id, url)
@@ -287,7 +325,7 @@ async def handleHeadpatAddImage(message, args):
             reply = REPLY['addimage']
         elif added == -1:
             reply = REPLY['existingurl']
-    await message.reply(reply)
+    return reply
 
 async def handleHeadpatGet(message, args):
     embed = discord.Embed()
@@ -297,11 +335,12 @@ async def handleHeadpatGet(message, args):
             if not url:
                 setDefaultHeadpat(embed)
                 break
-            elif await verifyURL(url):
+            elif verifyURL(url):
                 embed.set_image(url=url)
                 break
             else:
                 if await removeImage(url, message) == REPLY['imagedne']:
+                    print('FAILED_REMOVE')
                     setDefaultHeadpat(embed)
                     break
 
@@ -339,7 +378,7 @@ async def removeImage(url, message):
     else:
         return REPLY['imagedne']
 
-async def verifyURL(url):
+def verifyURL(url):
     try:
         image_formats = ("image/png", "image/jpeg", "image/jpg", "image/gif")
         r = urllib.request.urlopen(url)
@@ -375,7 +414,9 @@ COMMANDFUNCTION = {
     '!waifu' : handleWaifu,
     '!waifuadd' : handleWaifuAdd,
     '!waifustartpoll' : handleWaifuStartPoll,
-    '!waifuendpoll' : handleWaifuEndPoll
+    '!waifuendpoll' : handleWaifuEndPoll,
+    '!waifuaddcsv' : handleWaifuAddCSV,
+    '!waifupollresults' : handleWaifuPollResults
 } 
 
 REQLENGTH = {
@@ -386,7 +427,9 @@ REQLENGTH = {
     '!waifu' : 2,
     '!waifuadd' : 3,
     '!waifustartpoll' : 1,
-    '!waifuendpoll' : 1
+    '!waifuendpoll' : 1,
+    '!waifuaddcsv' : 1,
+    '!waifupollresults' : 1
 }
 
 client.run(TOKEN)

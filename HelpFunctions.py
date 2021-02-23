@@ -190,10 +190,16 @@ def endRound(dbURL, guild, votes, contestants, roundNum):
     '''
         Ends a round and displays results
     '''
-    print(contestants)
-    print(votes)
+    getRoundResults(votes, contestants, roundNum)
+
+    for i in range(len(contestants)):
+        updateContestant(dbURL, guild, contestants[i], immunities[i], probabilities[i])
+
+    storeRoundEnd(dbURL, guild, votes, roundNum)
+    return roundNum
+
+def getRoundResults(votes, contestants, roundNum):
     immprob = calculateRoundDefault(contestants,votes, roundNum)
-    print(immprob)
     immunities = immprob[0]
     probabilities = immprob[1]
     barFig,distFig = generatePlots(contestants, votes)
@@ -202,13 +208,6 @@ def endRound(dbURL, guild, votes, contestants, roundNum):
     imgPath2 = os.path.join(baseDir, 'plot2.jpg')
     barFig.savefig(imgPath1)
     distFig.savefig(imgPath2)
-
-    for i in range(len(contestants)):
-        updateContestant(dbURL, guild, contestants[i], immunities[i], probabilities[i])
-
-    storeRoundEnd(dbURL, guild, votes, roundNum)
-    return roundNum
-
 
 def createImage(baseDir,names, urls, iconNums,targetHeight,numCol,pad,offset):
     roundSize = len(names)
@@ -263,7 +262,7 @@ def createImage(baseDir,names, urls, iconNums,targetHeight,numCol,pad,offset):
 
             #resize image
             dsize=(targetWidth, targetHeight)
-            imgResize=cv2.resize(imgRaw,dsize);
+            imgResize=cv2.resize(imgRaw,dsize)
 
             #read and resize the icon
             iconRaw=cv2.imread(iconPath)
@@ -503,7 +502,7 @@ def getHeadpat(dbURL,guildID):
 
 def removeHeadpat(dbURL,guildID,url):
     command=f"DELETE FROM headpats WHERE guild='{guildID}' AND url = '{url}'"
-    conn=db.connect(dbURL);
+    conn=db.connect(dbURL)
     cur = conn.cursor()
     res = False
     try:
@@ -518,10 +517,10 @@ def removeHeadpat(dbURL,guildID,url):
         conn.close()
     return res
 
-def addContestant(dbURL,guild,name,imageURL):
+def addContestant(dbURL,guild,name, immunity, probability, imageURL):
     command = f"""
             INSERT INTO entrants(name, guild, immunity, probability, image)
-            VALUES ('{name}','{guild}',0,1,'{imageURL}')
+            VALUES ('{name}','{guild}',{immunity},{probability},'{imageURL}')
             """
     conn=db.connect(dbURL)
     cur = conn.cursor()
@@ -618,13 +617,14 @@ def getRound(dbURL,guild,roundNum):
     command= f"SELECT names, votes, message FROM rounds WHERE round_num = {roundNum} AND guild = '{guild}'"
     conn=db.connect(dbURL)
     cur=conn.cursor()
-    res=""
+    res=-2
     try:
         cur.execute(command)
         conn.commit()
         res=cur.fetchone()
-    except (Exception, db.DatabaseError) as error:
-        print(error)
+    except db.DatabaseError as error:
+        print(error.pgcode)
+        res = -1
     finally:
         cur.close()
         conn.close()
