@@ -25,6 +25,7 @@ performs some checking to ensure the link is valid, but does not always succeed.
 Available to all roles
 ##### !Waifu addcsv
 Adds all waifus from a csv file.  
+Default CSVs for testing or bootstrapping included in github repository.  
 CSV must have columns in following order: `Name | Immunity (default 0) | Probability (default 1) | image.link`  
 Available to moderator roles
 ##### !Waifu remove name_underscores_replace_spaces
@@ -48,7 +49,7 @@ Fetches the keypad number reacts from recent pins, excluding its own, and posts 
 ## Planned Features
 * Configurable Role Control
 * Configurable Poll Settings (size, image specifications, etc)
-* Random Replacement of headpat imges
+* Random Replacement of headpat images
 * Auto-polling by time interval and/or completion votes
 * Discord image attachment/link support
 * csv export
