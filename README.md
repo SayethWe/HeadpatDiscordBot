@@ -2,6 +2,7 @@
 
 A discord bot for distributing headpats and rating waifus.  
 [Add the bot to your server](https://discord.com/api/oauth2/authorize?client_id=807859649621524490&permissions=117824&scope=bot)
+[Join the support server](https://discord.gg/yhQzBYqFZb)
 
 ## Features/Commands
 ### !Usage <command>
