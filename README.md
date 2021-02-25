@@ -17,7 +17,7 @@ Available to all roles
 ##### !Headpat removeimage image.link
 Removes the specified link from the server's headpats.  
 Available to moderator roles
-###!Waifu 
+### !Waifu 
 Command family for approval voting polls. Does not work without arguments.
 ##### !Waifu add name_underscores_replace_spaces image.link
 adds a waifu to be voted on in selection polls.  
