@@ -190,7 +190,7 @@ def endRound(dbURL, guild, votes, contestants, roundNum):
     '''
         Ends a round and displays results
     '''
-    getRoundResults(votes, contestants, roundNum)
+    (immunities, probabilities)=getRoundResults(votes, contestants, roundNum)
 
     for i in range(len(contestants)):
         updateContestant(dbURL, guild, contestants[i], immunities[i], probabilities[i])
@@ -208,6 +208,8 @@ def getRoundResults(votes, contestants, roundNum):
     imgPath2 = os.path.join(baseDir, 'plot2.jpg')
     barFig.savefig(imgPath1)
     distFig.savefig(imgPath2)
+
+    return (immunities, probabilities)
 
 def createImage(baseDir,names, urls, iconNums,targetHeight,numCol,pad,offset):
     roundSize = len(names)
@@ -308,9 +310,9 @@ def createImage(baseDir,names, urls, iconNums,targetHeight,numCol,pad,offset):
 def calculateRound(contestants,votes,probOffset,immunityScale,selectivity,roundNum):
     '''
         Calculates immunities and probabilities for a round
-    ''' 
+    '''
     print(contestants)
-    print(votes)   
+    print(votes)
     ones=np.ones(len(votes))
     arr=np.array(votes)
     con=np.array(contestants)
@@ -325,7 +327,7 @@ def calculateRound(contestants,votes,probOffset,immunityScale,selectivity,roundN
         return (imm,prob,elim)
 
     mean = np.mean(X)
-    dev = np.std(X)    
+    dev = np.std(X)
     marr=mean*ones
     sarr=dev*ones
 
@@ -337,7 +339,7 @@ def calculateRound(contestants,votes,probOffset,immunityScale,selectivity,roundN
         imm=np.floor(immunityScale*((arr-marr)/sarr-selectivity))
 
     prob=ones/(1+probOffset+arr)
-    
+
     #Eliminate zero votes
     imm[arr==0]=-1
     #set prob to 0 for all ejected
@@ -362,7 +364,7 @@ def generateRound(immunities,probabilities,roundNum,roundSize):
     imm=imm[imm>=0]
     if(len(val) == 0):
         return []
-    
+
     probSum=np.sum(valProb)*np.ones(len(val))
     probs=valProb/probSum
     print(probs)
@@ -474,7 +476,7 @@ def addHeadpat(dbURL,guildID,url):
         else:
             res = -2
     except Exception as error:
-        res = -2        
+        res = -2
     finally:
         cur.close()
         conn.close()
