@@ -232,16 +232,17 @@ def createImage(baseDir,names, urls, iconNums,targetHeight,numCol,pad,offset):
 
             iconName='%02.0f.png' %iconNums[i]
             name=names[i]
-            #print(name)
+
             imgName=name+'.png'
             #imgPath=os.path.join(baseDir,'img',imgName)
             iconPath=os.path.join(baseDir,'icon',iconName)
             url=urls[i]
 
             #read the image
+            print(f"Fetching image for {name} from {url}")
             resp=request.urlopen(url)
             imgRaw=np.asarray(bytearray(resp.read()),dtype=np.uint8)
-            imgRaw=cv2.imdecode(imgRaw,cv2.IMREAD_COLOR)
+            imgRaw=cv2.imdecode(imgRaw,cv2.IMREAD_UNCHANGED)
             #imgRaw=cv2.imread(imgPath,cv2.IMREAD_UNCHANGED)
             #img=Image.open(imgPath)
             #imgRaw=np.asarray(img)
