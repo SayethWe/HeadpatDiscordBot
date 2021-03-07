@@ -267,10 +267,12 @@ def createImage(baseDir,names, urls, iconNums,targetHeight,numCol,pad,offset):
             except (Exception) as error:
                 #Load default failure image
                 #stopgap for now, but it'll do
+                print(error)
+                print("Image failed, swapping to default")
                 resp=request.urlopen(IMAGEFAILURL)
                 imgRaw=np.asarray(bytearray(resp.read()),dtype=np.uint8)
                 imgRaw=cv2.imdecode(imgRaw,cv2.IMREAD_UNCHANGED)
-                
+
             #calculate the targetWidth
             targetWidth=int(targetHeight/imgRaw.shape[0]*imgRaw.shape[1])
 
