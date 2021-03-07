@@ -6,6 +6,7 @@ import HelpFunctions as hf
 import traceback
 import RoleControl as rc
 import discord
+from discord.ext import commands
 from configparser import ConfigParser
 
 config = ConfigParser()
@@ -22,10 +23,10 @@ DEFAULTPOLLMESSAGE = ("Here's your round. But we all know that I'm the only one 
 DEFAULTUSAGE = (
             'Commands list:\n'
             '    !usage\n'
-            '    !waifu\n' 
+            '    !waifu\n'
             '    !headpat\n'
             'Extra Functionality:\n'
-            '    poll [DEPRECATED]\n' 
+            '    poll [DEPRECATED]\n'
             '!usage <any of the above commands or functionalities>')
 
 USAGE = {
@@ -78,12 +79,17 @@ REPLY = {
     'waifuaddcsv' : 'Waifus added. So much waifu. Fwoooooo'
 }
 
+ACTIVITY = (discord.Game(name = "with you're waifus while You're away. | !usage"),discord.Activity(type=discord.ActivityType.watching,name='over your waifus for you | !usage'))
+
 
 @client.event
 async def on_ready():
     hf.createTables(DATABASE_HOST)
+
+    await client.change_presence(activity=ACTIVITY[1])
+
     for guild in client.guilds:
-        
+
         print(
             f'{client.user} is connected to the following guild:\n'
             f'{guild.name}(id: {guild.id})'
@@ -99,14 +105,14 @@ async def on_message_edit(before, after):
             print('i')
             await after.add_reaction(rString)
         await after.add_reaction(f'\N{CHEQUERED FLAG}')
-    
+
 @client.event
 async def on_message(message):
     #try:
         print(message.content)
         if message.author.id in (813127605502214184, 807859649621524490):
             return
-        
+
         commandArgs = getArgs(message)
         command = commandArgs[0].lower()
 
@@ -123,7 +129,7 @@ async def on_message(message):
             channel = discord.utils.get(message.guild.channels, name = 'waifu-rating')
             print(channel.name)
             pins = await channel.pins()
-            
+
             pin = pins[0]
             if  len(message.content) > len(command):
                 indexString = message.content[len(command) + 1:].rstrip()
@@ -131,8 +137,8 @@ async def on_message(message):
             print(pin.content)
             await make_file(pin)
             await message.channel.send(content = WAIFU_REPLY, file = discord.File('waifupoll.txt'))
-        
-           
+
+
 async def handleCallCommandFunction(message, args):
     command = args[0].lower()
     if command in COMMANDFUNCTION:
@@ -154,7 +160,7 @@ async def handleHeadpat(message, args):
         await handleSubCommand(message, args)
     else:
         await handleHeadpatGet(message, args)
-    
+
 async def handleWaifu(message, args):
     if len(args) > 1  and checkValidSubCommand(args):
         await handleSubCommand(message, args)
@@ -172,12 +178,17 @@ def waifuAdd(message, args):
     url = args[3]
     code = hf.addContestant(DATABASE_HOST, message.guild.id, name, immunity, probability, url)
     return code
-    
+
 
 async def handleError(message, args):
     usage = getUsage(args)
     response = "That isn't how it works. Here:\n" + usage
     await message.reply(response)
+
+def loadUsage():
+    #Eventual place to load in the usage command returns
+    #from readme.md or other storage text file
+    return USAGE
 
 def getUsage(args):
     if len(args) == 0:
@@ -196,7 +207,7 @@ async def handleWaifuStartPoll(message, args):
     try:
         poll = await message.channel.send(REPLY['waifustartpoll'])
         roundID, contestantNo = hf.startRound(DATABASE_HOST, message.guild.id, f'{poll.channel.id};{poll.id}')
-    except Exception as e: 
+    except Exception as e:
         print(e)
         await poll.delete()
         await message.reply(REPLY['unhandled'])
@@ -208,7 +219,7 @@ async def handleWaifuStartPoll(message, args):
     if roundID == -2:
         await message.reply(REPLY['novalidpicks'])
         return
-    
+
     reply = await message.channel.send(f'[ROUND {roundID}] '+DEFAULTPOLLMESSAGE, file = discord.File('poll.jpg'))
     hf.updateMessageID(DATABASE_HOST, message.guild.id, f'{reply.channel.id};{reply.id}', roundID)
     for i in range(contestantNo):
@@ -220,7 +231,7 @@ async def handleWaifuEndPoll(message, args):
     try:
         reply = await message.channel.send(REPLY['waifuendpoll'])
         roundVal = hf.getRoundMessage(DATABASE_HOST, message.guild.id)
-    except Exception as e: 
+    except Exception as e:
         print(e)
         await reply.delete()
         await message.reply(REPLY['unhandled'])
@@ -229,7 +240,7 @@ async def handleWaifuEndPoll(message, args):
     if roundVal == -1:
         await reply.delete()
         await message.reply(REPLY['endedpoll'])
-        return 
+        return
     if roundVal == -2:
         await reply.delete()
         await message.reply(REPLY['nopollmade'])
@@ -249,7 +260,7 @@ async def handleWaifuEndPoll(message, args):
         print('NO MESSAGE')
         await reply.delete()
         await message.reply(REPLY['polldne'])
-    
+
     votes = []
     for i in range(len(roundValues[0])):
         rString = f'1️\N{COMBINING ENCLOSING KEYCAP}'
@@ -265,7 +276,7 @@ async def handleWaifuEndPoll(message, args):
     await message.reply('I present to you, the results', files = [discord.File('plot1.jpg'), discord.File('plot2.jpg')])
 
 
-        
+
 
 async def handleSubCommand(message, args):
     assert(len(args) > 1)
@@ -273,7 +284,7 @@ async def handleSubCommand(message, args):
     commandHelper = args[1].lower()
     args = [args[0] + commandHelper] + (args[2:])
     print(args)
-    await handleCallCommandFunction(message, args) 
+    await handleCallCommandFunction(message, args)
 
 async def handleWaifuPollResults(message, args):
     roundNum = -1
@@ -286,11 +297,11 @@ async def handleWaifuPollResults(message, args):
     if data == -1:
         await reply.delete()
         await message.reply(REPLY['noround'])
-    
+
     hf.getRoundResults(data[1], data[0], roundNum)
     await reply.delete()
     await message.reply('I present to you, the results', files = [discord.File('plot1.jpg'), discord.File('plot2.jpg')])
-    
+
 
 async def handleWaifuAddCSV(message : discord.Message, args):
     attachments = message.attachments
@@ -385,7 +396,7 @@ def verifyURL(url):
         r = urllib.request.urlopen(url)
         print(r.headers['content-type'])
         if r.headers["content-type"] in image_formats:
-            return True  
+            return True
         return False
     except Exception as e:
         traceback.print_exc()
@@ -404,7 +415,7 @@ async def make_file(message):
                 count = r.count - (1 if r.me else 0)
         f.write(f'{count}\n')
     f.close()
-    return 
+    return
 
 COMMANDFUNCTION = {
     '!usage' : handleUsage,
@@ -418,7 +429,7 @@ COMMANDFUNCTION = {
     '!waifuendpoll' : handleWaifuEndPoll,
     '!waifuaddcsv' : handleWaifuAddCSV,
     '!waifupollresults' : handleWaifuPollResults
-} 
+}
 
 REQLENGTH = {
     '!usage' : 1,

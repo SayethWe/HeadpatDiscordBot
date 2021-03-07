@@ -96,6 +96,8 @@ DEFAULTSELECTIVITY = -1
 DEFAULTIMMUNITYSCALE = 1
 DEFAULTPROBABILITY = 1
 
+IMAGEFAILURL = "https://i.imgur.com/lW0Yvgl.jpg"
+
 def createImageDefault(contestants,contestantUrls):
     '''
     Creates a 5 x 2 poll image with default settings for contestants given
@@ -232,32 +234,44 @@ def createImage(baseDir,names, urls, iconNums,targetHeight,numCol,pad,offset):
 
             iconName='%02.0f.png' %iconNums[i]
             name=names[i]
-            #print(name)
+
             imgName=name+'.png'
             #imgPath=os.path.join(baseDir,'img',imgName)
             iconPath=os.path.join(baseDir,'icon',iconName)
             url=urls[i]
 
-            #read the image
-            resp=request.urlopen(url)
-            imgRaw=np.asarray(bytearray(resp.read()),dtype=np.uint8)
-            imgRaw=cv2.imdecode(imgRaw,cv2.IMREAD_COLOR)
-            #imgRaw=cv2.imread(imgPath,cv2.IMREAD_UNCHANGED)
-            #img=Image.open(imgPath)
-            #imgRaw=np.asarray(img)
-            #print(imgRaw.shape)
-            if(imgRaw.shape[2]==4):
-                alpha=imgRaw[:,:,3]
-                rgb=imgRaw[:,:,:3]
+            try:
+                #read the image
+                print(f"Fetching image for {name} from {url}")
+                resp=request.urlopen(url)
+                imgRaw=np.asarray(bytearray(resp.read()),dtype=np.uint8)
+                imgRaw=cv2.imdecode(imgRaw,cv2.IMREAD_UNCHANGED)
 
-                whitebg=np.ones_like(rgb,dtype=np.uint8)*255
+                #imgRaw=cv2.imread(imgPath,cv2.IMREAD_UNCHANGED)
+                #img=Image.open(imgPath)
+                #imgRaw=np.asarray(img)
+                #print(imgRaw.shape)
+                if(imgRaw.shape[2]==4):
+                    alpha=imgRaw[:,:,3]
+                    rgb=imgRaw[:,:,:3]
 
-                alpha_factor = alpha[:,:,np.newaxis].astype(np.float32) / 255.0
-                alpha_factor = np.concatenate((alpha_factor,alpha_factor,alpha_factor), axis=2)
+                    whitebg=np.ones_like(rgb,dtype=np.uint8)*255
 
-                base = rgb.astype(np.float32) * alpha_factor
-                white = whitebg.astype(np.float32) * (1 - alpha_factor)
-                imgRaw = base + white
+                    alpha_factor = alpha[:,:,np.newaxis].astype(np.float32) / 255.0
+                    alpha_factor = np.concatenate((alpha_factor,alpha_factor,alpha_factor), axis=2)
+
+                    base = rgb.astype(np.float32) * alpha_factor
+                    white = whitebg.astype(np.float32) * (1 - alpha_factor)
+                    imgRaw = base + white
+
+            except (Exception) as error:
+                #Load default failure image
+                #stopgap for now, but it'll do
+                print(error)
+                print("Image failed, swapping to default")
+                resp=request.urlopen(IMAGEFAILURL)
+                imgRaw=np.asarray(bytearray(resp.read()),dtype=np.uint8)
+                imgRaw=cv2.imdecode(imgRaw,cv2.IMREAD_UNCHANGED)
 
             #calculate the targetWidth
             targetWidth=int(targetHeight/imgRaw.shape[0]*imgRaw.shape[1])
