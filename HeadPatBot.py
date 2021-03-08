@@ -7,6 +7,7 @@ import traceback
 import RoleControl as rc
 import discord
 from discord.ext import commands
+from discord.ext.commands import Bot
 from configparser import ConfigParser
 
 config = ConfigParser()
@@ -14,7 +15,7 @@ config.read('config.ini')
 
 TOKEN = os.environ['DISCORD_TOKEN']
 DATABASE_HOST = os.environ['DATABASE_URL']
-client = discord.Client()
+bot = commands.Bot(command_prefix='$')
 
 WAIFU_REPLY = config.get('DEFAULT', 'WAIFU_REPLY')
 
@@ -79,23 +80,23 @@ REPLY = {
     'waifuaddcsv' : 'Waifus added. So much waifu. Fwoooooo'
 }
 
-ACTIVITY = (discord.Game(name = "with you're waifus while You're away. | !usage"),discord.Activity(type=discord.ActivityType.watching,name='over your waifus for you | !usage'))
+ACTIVITY = (discord.Game(name = "with your waifus while you're away. | !usage"),discord.Activity(type=discord.ActivityType.watching,name='your waifus for you | !usage'))
 
 
-@client.event
+@bot.event
 async def on_ready():
     hf.createTables(DATABASE_HOST)
 
-    await client.change_presence(activity=ACTIVITY[1])
+    await bot.change_presence(activity=ACTIVITY[1])
 
-    for guild in client.guilds:
+    for guild in bot.guilds:
 
         print(
-            f'{client.user} is connected to the following guild:\n'
+            f'{bot.user} is connected to the following guild:\n'
             f'{guild.name}(id: {guild.id})'
         )
 
-@client.event
+@bot.event
 async def on_message_edit(before, after):
     print((not before.pinned) and after.pinned)
     print(after.channel.name)
@@ -106,38 +107,21 @@ async def on_message_edit(before, after):
             await after.add_reaction(rString)
         await after.add_reaction(f'\N{CHEQUERED FLAG}')
 
-@client.event
-async def on_message(message):
-    #try:
-        print(message.content)
-        if message.author.id in (813127605502214184, 807859649621524490):
-            return
+@bot.command()
+async def test(ctx, *args):
+    await ctx.send('{} arguments: {}'.format(len(args), ', '.join(args)))
 
-        commandArgs = getArgs(message)
-        command = commandArgs[0].lower()
-
-        if  command in COMMANDFUNCTION:
-            try:
-                await handleCallCommandFunction(message, commandArgs)
-            except Exception as e:
-                traceback.print_exc()
-                await message.reply(REPLY['unhandled'] + '\n' + e)
-
-        command = '!waifupoll'
-        if  command in message.content.lower():
-            print('sending')
-            channel = discord.utils.get(message.guild.channels, name = 'waifu-rating')
-            print(channel.name)
-            pins = await channel.pins()
-
-            pin = pins[0]
-            if  len(message.content) > len(command):
-                indexString = message.content[len(command) + 1:].rstrip()
-                pin = pins[int(indexString)]
-            print(pin.content)
-            await make_file(pin)
-            await message.channel.send(content = WAIFU_REPLY, file = discord.File('waifupoll.txt'))
-
+@bot.command()
+async def testSubs(ctx, *args):
+    subs={
+     '1':"one",
+     '2':"two"
+    }
+    if len(args) > 0:
+        sub=args[0]
+        if sub in subs:
+            await ctx.send('{} and {}'.format(subs[sub],', '.join(args[1:])))
+    await ctx.send('Test successful?')
 
 async def handleCallCommandFunction(message, args):
     command = args[0].lower()
@@ -155,13 +139,17 @@ async def handleCallCommandFunction(message, args):
 def checkValidSubCommand(args):
     return (args[0] + args[1]).lower() in COMMANDFUNCTION
 
-async def handleHeadpat(message, args):
-    if len(args) > 1 and checkValidSubCommand(args):
+@bot.command()
+async def headpat(ctx, *args):
+    message=ctx.message
+    if len(args) > 0 and checkValidSubCommand(args):
         await handleSubCommand(message, args)
     else:
         await handleHeadpatGet(message, args)
 
-async def handleWaifu(message, args):
+@bot.command()
+async def waifu(ctx, *args):
+    message=ctx.message
     if len(args) > 1  and checkValidSubCommand(args):
         await handleSubCommand(message, args)
     else:
@@ -250,7 +238,7 @@ async def handleWaifuEndPoll(message, args):
 
     print(roundValues)
     messageID = roundValues[2].split(';')
-    channel = client.get_channel(int(messageID[0]))
+    channel = bot.get_channel(int(messageID[0]))
     if not channel:
         print('NO CHANNEL')
         await reply.delete()
@@ -362,8 +350,10 @@ async def handleHeadpatGet(message, args):
 
     await message.reply('There there... Have a headpat, ' + message.author.display_name, embed = embed)
 
-async def handleUsage(message, args):
-    await message.reply(getUsage(args[1:]))
+@bot.command()
+async def usage(ctx, *args):
+
+    await ctx.message.reply(getUsage(args[1:]))
 
 def getArgs(message):
     return message.content.split(' ')
@@ -418,12 +408,12 @@ async def make_file(message):
     return
 
 COMMANDFUNCTION = {
-    '!usage' : handleUsage,
-    '!headpat' : handleHeadpat,
+    '!usage' : usage,
+    '!headpat' : headpat,
     '!headpataddimage' : handleHeadpatAddImage,
     '!headpatget' : handleHeadpatGet,
     '!headpatremoveimage' : handleHeadpatRemoveImage,
-    '!waifu' : handleWaifu,
+    '!waifu' : waifu,
     '!waifuadd' : handleWaifuAdd,
     '!waifustartpoll' : handleWaifuStartPoll,
     '!waifuendpoll' : handleWaifuEndPoll,
@@ -444,4 +434,4 @@ REQLENGTH = {
     '!waifupollresults' : 1
 }
 
-client.run(TOKEN)
+bot.run(TOKEN)
