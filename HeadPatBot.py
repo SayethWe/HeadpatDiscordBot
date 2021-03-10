@@ -15,7 +15,7 @@ config.read('config.ini')
 
 TOKEN = os.environ['DISCORD_TOKEN']
 DATABASE_HOST = os.environ['DATABASE_URL']
-bot = commands.Bot(command_prefix=commands.when_mentioned_or('$'),help_command=commands.DefaultHelpCommand(no_category = 'Commands'))
+bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'),help_command=commands.DefaultHelpCommand(no_category = 'Commands'))
 
 WAIFU_REPLY = config.get('DEFAULT', 'WAIFU_REPLY')
 
