@@ -115,6 +115,13 @@ async def on_ready():
         )
 
 @bot.event
+async def on_command_error(ctx,error):
+    print(ctx)
+    print(error)
+    await ctx.reply(error)
+
+
+@bot.event
 async def on_message_edit(before, after):
     print((not before.pinned) and after.pinned)
     print(after.channel.name)
