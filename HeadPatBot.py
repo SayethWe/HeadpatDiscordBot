@@ -82,6 +82,12 @@ REPLY = {
     'waifuaddcsv' : 'Waifus added. So much waifu. Fwoooooo'
 }
 
+ERRORS_HANDLED = {
+    'MissingRequiredArgument' : "That's not enough information! Come back when you have more",
+    'CheckFailure' : "Something tells me I'm not supposed to do this for you right now.",
+    'CheckAnyFailure' : "You're not allowed to do that. Go find someone who is."
+}
+
 ACTIVITY = (discord.Game(name = "with your waifus while you're away. | !help"),
 discord.Activity(type=discord.ActivityType.watching,name='your waifus for you | !help'))
 
@@ -118,9 +124,14 @@ async def on_ready():
 
 @bot.event
 async def on_command_error(ctx,error):
-    print(ctx)
-    print(error)
-    await ctx.reply(error)
+    #print(ctx)
+    #print(error)
+    key = type(error).__name__
+    print(key)
+    if not key in ERRORS_HANDLED:
+        await ctx.reply(REPLY['unhandled']+"\n{}".format(error))
+    else:
+        await ctx.reply(ERRORS_HANDLED[key])
 
 
 @bot.event
