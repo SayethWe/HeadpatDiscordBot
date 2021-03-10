@@ -572,7 +572,7 @@ def updateContestant(dbURL,guild,name,immunity,probability):
         cur.close()
         conn.close()
 
-def deleteContestant(dbURL,title,name):
+def deleteContestant(dbURL,guild,name):
     command=f"DELETE FROM entrants WHERE name = %s AND guild = '{guild}'"
     conn=db.connect(dbURL);
     cur=conn.cursor()

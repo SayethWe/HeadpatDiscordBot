@@ -68,6 +68,8 @@ REPLY = {
                           "本当に何、この状況！:anger:"),
     'waifuadd' : ("Waifu Waifu Waifu! More Waifu!\n"
                   "They've been added to the pool"),
+    'waifuRemove' : ("They're Gone.\n"
+                     "*Less competition for me, I suppose.*"),
     'waifustartpoll' : ('Just a sec...'),
     'waifuendpoll' : ('Wait a bit...'),
     'unhandled' : 'Something happened, report this to the devs\nhttps://github.com/SayethWe/HeadpatDiscordBot/issues',
@@ -221,10 +223,9 @@ async def remove(ctx, *, name : str):
     """remove a waifu from the poling system.
 
     not required for eliminated waifus, those are kept to prevent duplicates
-    also, not implemented
     """
-
-    await ctx.send('Cannot remove {} at {} yet'.format(name, link))
+    hf.deleteContestant(DATABASE_HOST,ctx.guild.id,name)
+    await ctx.reply(REPLY['waifuRemove'])
 
 @waifu.command()
 @commands.check_any(rc.allowMod())
