@@ -126,48 +126,60 @@ def checkValidSubCommand(args):
 @bot.group()
 async def headpat(ctx):
     """For when you really need a headpat"""
-    embed = discord.Embed()
-    try:
-        while(True):
-            url = hf.getHeadpat(DATABASE_HOST, ctx.guild.id)
-            if not url:
-                setDefaultHeadpat(embed)
-                break
-            elif verifyURL(url):
-                embed.set_image(url=url)
-                break
-            else:
-                if await removeImage(url, message) == REPLY['imagedne']:
-                    print('FAILED_REMOVE')
+    if ctx.invoked_subcommand is None:
+        embed = discord.Embed()
+        try:
+            while(True):
+                url = hf.getHeadpat(DATABASE_HOST, ctx.guild.id)
+                if not url:
                     setDefaultHeadpat(embed)
                     break
-    except Exception as e:
-        print(e)
-        setDefaultHeadpat(embed)
-    await ctx.reply('There there... Have a headpat, ' + ctx.author.display_name, embed = embed)
+                elif verifyURL(url):
+                    embed.set_image(url=url)
+                    break
+                else:
+                    if await removeImage(url, message) == REPLY['imagedne']:
+                        print('FAILED_REMOVE')
+                        setDefaultHeadpat(embed)
+                        break
+        except Exception as e:
+            print(e)
+            setDefaultHeadpat(embed)
+        await ctx.reply('There there... Have a headpat, ' + ctx.author.display_name, embed = embed)
 
 
 @headpat.command()
-async def add(ctx, name):
+async def add(ctx, link):
     """Add a headpat to fetch later"""
-    pass
+    reply = REPLY['unhandled']
+    if not verifyURL(link):
+        reply =  REPLY['urlbroken']
+    else:
+        added = hf.addHeadpat(DATABASE_HOST, ctx.guild.id, link)
+        if added == 0:
+            reply = REPLY['addimage']
+        elif added == -1:
+            reply = REPLY['existingurl']
+    await ctx.reply(reply)
 
 @headpat.command()
 @commands.check_any(rc.allowMod())
-async def remove(ctx, name):
-    """Allows a mod to remove an unwholesome headpat
-    not implemented
-    """
-    pass
+async def remove(ctx, url):
+    """Allows a mod to remove an unwholesome headpat"""
+    reply=REPLY['imagedne']
+    if(hf.removeHeadpat(DATABASE_HOST, ctx.guild.id, url)):
+        reply=REPLY['removeimage']
+    await ctx.reply(reply)
 
 @bot.group()
 async def waifu(ctx):
     """Maybe return a random waifu?"""
-    pass
+    if ctx.invoked_subcommand is None:
+        await ctx.send('waifu command')
 
 @waifu.command()
 async def add(ctx, link : str, *, name : str):
-    await ctx.send('Cannot add {} at {} yet'.format(name, link))
+    await ctx.reply('Cannot add {} at {} yet'.format(name, link))
 
 @waifu.command()
 @commands.check_any(rc.allowMod())
@@ -210,24 +222,6 @@ async def handleError(message, args):
     usage = getUsage(args)
     response = "That isn't how it works. Here:\n" + usage
     await message.reply(response)
-
-def loadUsage():
-    #Eventual place to load in the usage command returns
-    #from readme.md or other storage text file
-    return USAGE
-
-def getUsage(args):
-    if len(args) == 0:
-        return DEFAULTUSAGE
-    command = args[0].lower()
-    if command in USAGE:
-        if len(args) > 1:
-            helperCommand = command + args[1].lower()
-            print(helperCommand)
-            if helperCommand in USAGE:
-                return USAGE[helperCommand]
-        return USAGE[command]
-    return DEFAULTUSAGE
 
 async def handleWaifuStartPoll(message, args):
     try:
@@ -302,16 +296,6 @@ async def handleWaifuEndPoll(message, args):
     await message.reply('I present to you, the results', files = [discord.File('plot1.jpg'), discord.File('plot2.jpg')])
 
 
-
-
-async def handleSubCommand(message, args):
-    assert(len(args) > 1)
-    command = args[0].lower()
-    commandHelper = args[1].lower()
-    args = [args[0] + commandHelper] + (args[2:])
-    print(args)
-    await handleCallCommandFunction(message, args)
-
 async def handleWaifuPollResults(message, args):
     roundNum = -1
     reply = await message.channel.send(REPLY['waifuendpoll'])
@@ -347,46 +331,6 @@ async def handleWaifuAddCSV(message : discord.Message, args):
 async def handleHeadpatRemoveImage(message, args):
     url = args[1]
     await message.reply(await removeImage(url, message))
-
-async def handleHeadpatAddImage(message, args):
-    url = args[1]
-    reply = headpatAddImage(message,url)
-    await message.reply(reply)
-
-def headpatAddImage(message, url):
-    reply = REPLY['unhandled']
-    if not verifyURL(url):
-        reply =  REPLY['urlbroken']
-    else:
-        added = hf.addHeadpat(DATABASE_HOST, message.guild.id, url)
-        if added == 0:
-            reply = REPLY['addimage']
-        elif added == -1:
-            reply = REPLY['existingurl']
-    return reply
-
-async def handleHeadpatGet(message, args):
-    embed = discord.Embed()
-    try:
-        while(True):
-            url = hf.getHeadpat(DATABASE_HOST, message.guild.id)
-            if not url:
-                setDefaultHeadpat(embed)
-                break
-            elif verifyURL(url):
-                embed.set_image(url=url)
-                break
-            else:
-                if await removeImage(url, message) == REPLY['imagedne']:
-                    print('FAILED_REMOVE')
-                    setDefaultHeadpat(embed)
-                    break
-
-    except Exception as e:
-        print(e)
-        setDefaultHeadpat(embed)
-
-    await message.reply('There there... Have a headpat, ' + message.author.display_name, embed = embed)
 
 def setDefaultHeadpat(embed):
     embed.set_image(url = 'https://i.pinimg.com/originals/99/4b/4e/994b4e0be0832e8ebf03e97a09859864.jpg')
