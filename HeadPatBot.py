@@ -15,7 +15,7 @@ config.read('config.ini')
 
 TOKEN = os.environ['DISCORD_TOKEN']
 DATABASE_HOST = os.environ['DATABASE_URL']
-bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'),help_command=commands.DefaultHelpCommand(no_category = 'Commands'))
+bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'))
 
 WAIFU_REPLY = config.get('DEFAULT', 'WAIFU_REPLY')
 
@@ -83,6 +83,23 @@ REPLY = {
 ACTIVITY = (discord.Game(name = "with your waifus while you're away. | !help"),
 discord.Activity(type=discord.ActivityType.watching,name='your waifus for you | !help'))
 
+### Help Command
+
+class MyHelpCommand(commands.MinimalHelpCommand):
+    def __init__(self):
+        self.no_category='Commands'
+        super().__init__(no_category='Commands')
+
+    async def send_pages(self):
+        destination = self.get_destination()
+        e = discord.Embed(color=discord.Color.dark_red(), description='Headpat Help: \n\n')
+        for page in self.paginator.pages:
+            e.description += page
+        await destination.send(embed=e)
+
+bot.help_command = MyHelpCommand()
+
+### Events
 
 @bot.event
 async def on_ready():
