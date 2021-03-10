@@ -80,7 +80,8 @@ REPLY = {
     'waifuaddcsv' : 'Waifus added. So much waifu. Fwoooooo'
 }
 
-ACTIVITY = (discord.Game(name = "with your waifus while you're away. | !usage"),discord.Activity(type=discord.ActivityType.watching,name='your waifus for you | !usage'))
+ACTIVITY = (discord.Game(name = "with your waifus while you're away. | !help"),
+discord.Activity(type=discord.ActivityType.watching,name='your waifus for you | !help'))
 
 
 @bot.event
