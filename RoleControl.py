@@ -2,9 +2,10 @@ import os
 import discord
 from discord.ext import commands
 
-
-def allowAll(message):
-    return True
+def allowAll():
+    def predicate(ctx):
+        return True
+    return commands.check(predicate)
 
 def allowMod():
     def predicate(ctx):
@@ -13,10 +14,12 @@ def allowMod():
         return is_mod
     return commands.check(predicate)
 
-def allowAdmin(message):
-    permissions = message.channel.permissions_for(message.author)
-    is_admin = permissions.administrator
-    return is_admin
+def allowAdmin():
+    def predicate(ctx):
+        permissions = ctx.channel.permissions_for(ctx.author)
+        is_admin = permissions.administrator
+        return is_admin
+    return commands.check(predicate)
 
 ROLECONTROLDEFAULT = {
     '!usage' : allowAll,
