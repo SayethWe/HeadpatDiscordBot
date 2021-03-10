@@ -15,7 +15,7 @@ config.read('config.ini')
 
 TOKEN = os.environ['DISCORD_TOKEN']
 DATABASE_HOST = os.environ['DATABASE_URL']
-bot = commands.Bot(command_prefix=commands.when_mentioned_or('$'))
+bot = commands.Bot(command_prefix=commands.when_mentioned_or('$'),help_command=commands.DefaultHelpCommand(no_category = 'Commands'))
 
 WAIFU_REPLY = config.get('DEFAULT', 'WAIFU_REPLY')
 
@@ -107,28 +107,6 @@ async def on_message_edit(before, after):
             await after.add_reaction(rString)
         await after.add_reaction(f'\N{CHEQUERED FLAG}')
 
-class TestCommands(commands.Cog):
-    """Testing Commands for Testing Things"""
-
-    @commands.command()
-    async def test(self, ctx, *args):
-        """check the handed arguments"""
-        print(ctx)
-        await ctx.send('{} arguments: {}'.format(len(args), ', '.join(args)))
-
-    @commands.command()
-    async def testSubs(self, ctx, *args):
-        """See how subarguments work"""
-        subs={
-         '1':"one",
-         '2':"two"
-        }
-        if len(args) > 0:
-            sub=args[0]
-            if sub in subs:
-                await ctx.send('{} and {}'.format(subs[sub],', '.join(args[1:])))
-        await ctx.send('Test successful?')
-
 async def handleCallCommandFunction(message, args):
     command = args[0].lower()
     if command in COMMANDFUNCTION:
@@ -145,53 +123,75 @@ async def handleCallCommandFunction(message, args):
 def checkValidSubCommand(args):
     return (args[0] + args[1]).lower() in COMMANDFUNCTION
 
-class Headpats(commands.Cog):
-    """For when you really need that headpat"""
+@bot.group()
+async def headpat(ctx):
+    """For when you really need a headpat"""
+    embed = discord.Embed()
+    try:
+        while(True):
+            url = hf.getHeadpat(DATABASE_HOST, ctx.guild.id)
+            if not url:
+                setDefaultHeadpat(embed)
+                break
+            elif verifyURL(url):
+                embed.set_image(url=url)
+                break
+            else:
+                if await removeImage(url, message) == REPLY['imagedne']:
+                    print('FAILED_REMOVE')
+                    setDefaultHeadpat(embed)
+                    break
+    except Exception as e:
+        print(e)
+        setDefaultHeadpat(embed)
+    await ctx.reply('There there... Have a headpat, ' + ctx.author.display_name, embed = embed)
 
-    @commands.command()
-    async def headpat(self, ctx, *args):
-        """Retreive a headpat"""
-        message=ctx.message
-        if len(args) > 0 and checkValidSubCommand(args):
-            await handleSubCommand(message, args)
-        else:
-            await handleHeadpatGet(message, args)
 
-    @commands.command()
-    async def addHeadpat(self, ctx, *args):
-        """Add a headpat to fetch later"""
-        pass
+@headpat.command()
+async def add(ctx, name):
+    """Add a headpat to fetch later"""
+    pass
 
-    @commands.command()
-    @commands.check_any(rc.allowMod())
-    async def removeHeadpat(ctx, *args):
-        """Allows a mod to remove an unwholesome headpat"""
-        pass
+@headpat.command()
+@commands.check_any(rc.allowMod())
+async def remove(ctx, name):
+    """Allows a mod to remove an unwholesome headpat
+    not implemented
+    """
+    pass
 
-class WaifuPolls(commands.Cog):
-    """For Running Polls and selecting the best waifu"""
+@bot.group()
+async def waifu(ctx):
+    """Maybe return a random waifu?"""
+    pass
 
-    @commands.command()
-    async def addWaifu(self, ctx, link, *args):
-        name=' '.join(args)
-        await ctx.send('Cannot add {} at {} yet'.format(name, link))
+@waifu.command()
+async def add(ctx, link : str, *, name : str):
+    await ctx.send('Cannot add {} at {} yet'.format(name, link))
 
-    @commands.command()
-    @commands.check_any(rc.allowMod())
-    async def removeWaifu(self, ctx,*args):
-        name=' '.join(args)
-        await ctx.send('Cannot remove {} at {} yet'.format(name, link))
+@waifu.command()
+@commands.check_any(rc.allowMod())
+async def remove(ctx, *, name):
+    name=' '.join(args)
+    await ctx.send('Cannot remove {} at {} yet'.format(name, link))
 
-    @commands.command()
-    async def endpoll(self, ctx):
-        """Finish the last poll round"""
-        pass
+@waifu.command()
+@commands.check_any(rc.allowMod())
+async def endpoll(ctx):
+    """Finish the last poll round"""
+    pass
 
-    @commands.command()
-    @commands.check_any(rc.allowMod())
-    async def startPoll(self, ctx):
-        """start a poll round"""
-        pass
+@waifu.command()
+@commands.check_any(rc.allowMod())
+async def startPoll(ctx):
+    """start a poll round"""
+    pass
+
+@waifu.command()
+@commands.check_any(rc.allowMod())
+async def addCSV(ctx):
+    """Load in a whole FILE worth of Waifus"""
+    pass
 
 async def handleWaifuAdd(message, args):
     code = waifuAdd(message, [args[1], 0, 1, args[2]])
@@ -388,17 +388,6 @@ async def handleHeadpatGet(message, args):
 
     await message.reply('There there... Have a headpat, ' + message.author.display_name, embed = embed)
 
-@bot.command()
-async def usage(ctx, *args):
-
-    await ctx.message.reply(getUsage(args[1:]))
-
-def getArgs(message):
-    return message.content.split(' ')
-
-def getArg(command, index):
-    return command.split(' ')[index]
-
 def setDefaultHeadpat(embed):
     embed.set_image(url = 'https://i.pinimg.com/originals/99/4b/4e/994b4e0be0832e8ebf03e97a09859864.jpg')
     embed.set_footer(text = 'There is no headpat')
@@ -430,47 +419,4 @@ def verifyURL(url):
         traceback.print_exc()
         return False
 
-async def make_file(message):
-    message = await message.channel.fetch_message(message.id)
-    print(message.reactions)
-    f = open("waifupoll.txt", "w")
-    for i in range(10):
-        rString = f'1️\N{COMBINING ENCLOSING KEYCAP}'
-        count = 0
-        #await message.add_reaction(emoji)
-        for r in message.reactions:
-            if r.emoji[0] == str(i):
-                count = r.count - (1 if r.me else 0)
-        f.write(f'{count}\n')
-    f.close()
-    return
-
-COMMANDFUNCTION = {
-    '!usage' : usage,
-    '!headpataddimage' : handleHeadpatAddImage,
-    '!headpatget' : handleHeadpatGet,
-    '!headpatremoveimage' : handleHeadpatRemoveImage,
-    '!waifuadd' : handleWaifuAdd,
-    '!waifustartpoll' : handleWaifuStartPoll,
-    '!waifuendpoll' : handleWaifuEndPoll,
-    '!waifuaddcsv' : handleWaifuAddCSV,
-    '!waifupollresults' : handleWaifuPollResults
-}
-
-REQLENGTH = {
-    '!usage' : 1,
-    '!headpat' : 1,
-    '!headpataddimage' : 2,
-    '!headpatremoveimage' : 2,
-    '!waifu' : 2,
-    '!waifuadd' : 3,
-    '!waifustartpoll' : 1,
-    '!waifuendpoll' : 1,
-    '!waifuaddcsv' : 1,
-    '!waifupollresults' : 1
-}
-
-bot.add_cog(TestCommands())
-bot.add_cog(Headpats())
-bot.add_cog(WaifuPolls())
 bot.run(TOKEN)
