@@ -140,7 +140,7 @@ async def headpat(ctx):
                     embed.set_image(url=url)
                     break
                 else:
-                    if await removeImage(url, message) == REPLY['imagedne']:
+                    if await removeImage(url, ctx.message) == REPLY['imagedne']:
                         print('FAILED_REMOVE')
                         setDefaultHeadpat(embed)
                         break
@@ -288,14 +288,16 @@ async def addCSV(ctx):
         await handleError(message, args)
         return
     baseDir = os.path.dirname(__file__)
-    csvPath = os.path.join(baseDir, f'waifu{message.guild.id}.csv')
+    csvPath = os.path.join(baseDir, f'waifu{ctx.guild.id}.csv')
     await attachments[0].save(csvPath)
     with open(csvPath, 'r') as f:
         for line in f.readlines():
             print(line)
             args = line.split(',')
-            code = hf.addContestant(DATABASE_HOST, ctx.guild.id, args[0],args[1],ars[2],args[3])
+            code = hf.addContestant(DATABASE_HOST, ctx.guild.id, args[0],args[1],args[2],args[3])
     await ctx.reply(REPLY['waifuaddcsv'])
+
+### Helper Functions and Legacy Code
 
 async def handleError(message, args):
     usage = getUsage(args)
@@ -318,21 +320,6 @@ async def handleWaifuPollResults(message, args):
     await reply.delete()
     await message.reply('I present to you, the results', files = [discord.File('plot1.jpg'), discord.File('plot2.jpg')])
 
-
-async def handleWaifuAddCSV(message : discord.Message, args):
-    attachments = message.attachments
-    if len(attachments) == 0:
-        await handleError(message, args)
-        return
-    baseDir = os.path.dirname(__file__)
-    csvPath = os.path.join(baseDir, f'waifu{message.guild.id}.csv')
-    await attachments[0].save(csvPath)
-    with open(csvPath, 'r') as f:
-        for line in f.readlines():
-            print(line)
-            args = line.split(',')
-            code = waifuAdd(message, args)
-    await message.reply(REPLY['waifuaddcsv'])
 
 def setDefaultHeadpat(embed):
     embed.set_image(url = 'https://i.pinimg.com/originals/99/4b/4e/994b4e0be0832e8ebf03e97a09859864.jpg')
