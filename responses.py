@@ -14,6 +14,7 @@ class Responses(Enum):
     WAIFU_ADD='waifuadd'
     WAIFU_ADD_EXISTS='waifuaddexisting'
     WAIFU_ADD_CSV='waifuaddcsv'
+    WAIFU_ADD_CSV_MISSING='missingcsv'
     WAIFU_REMOVE='waifuRemove'
     WAIFU_POLL_START='waifustartpoll'
     WAIFU_POLL_START_SUCCESS='pollCreated'
@@ -138,5 +139,9 @@ REPLY = {
     Responses.WAIFU_ADD_CSV :
     [
         ("Waifus added. So much waifu. Fwoooooo")
+    ],
+    Responses.WAIFU_ADD_CSV_MISSING:
+    [
+        ("Did you forget to attach the file for me? You did, didn't you?")
     ]
 }
