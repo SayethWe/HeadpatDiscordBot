@@ -4,6 +4,7 @@ import random
 import urllib
 import HelpFunctions as hf
 import responses
+from responses import Responses as rsp
 import traceback
 import RoleControl as rc
 import discord
@@ -68,7 +69,7 @@ async def on_command_error(ctx,error):
     key = type(error).__name__
     print(key)
     if not key in ERRORS_HANDLED:
-        await ctx.reply(getResponse('unhandled')+"\n{}".format(error))
+        await ctx.reply(getResponse(rsp.ERROR_UNHANDLED)+"\n{}".format(error))
     else:
         await ctx.reply(ERRORS_HANDLED[key])
 
@@ -93,7 +94,7 @@ async def handleCallCommandFunction(message, args):
             else:
                 await handleError(message, args)
         else:
-            await message.reply(getResponse('forbidden'))
+            await message.reply(getResponse(rsp.ERROR_FORBIDDEN))
     else:
         await handleError(message, args)
 
@@ -124,30 +125,30 @@ async def headpat(ctx):
         except Exception as e:
             print(e)
             setDefaultHeadpat(embed)
-        await ctx.reply('There there... Have a headpat, ' + ctx.author.display_name, embed = embed)
+        await ctx.reply(getResponse(rsp.HEADPAT) + ctx.author.display_name, embed = embed)
 
 
 @headpat.command()
 async def add(ctx, link : str):
     """Add a headpat to fetch later"""
-    reply = getResponse('unhandled')
+    reply = getResponse(rsp.ERROR_UNHANDLED)
     if not verifyURL(link):
-        reply =  getResponse('urlbroken')
+        reply =  getResponse(rsp.HEADPAT_IMAGE_ADD_URL_BROKEN)
     else:
         added = hf.addHeadpat(DATABASE_HOST, ctx.guild.id, link)
         if added == 0:
-            reply = getResponse('addimage')
+            reply = getResponse(rsp.HEADPAT_IMAGE_ADD)
         elif added == -1:
-            reply = getResponse('existingurl')
+            reply = getResponse(rsp.HEADPAT_IMAGE_ADD_URL_EXISTS)
     await ctx.reply(reply)
 
 @headpat.command()
 @commands.check_any(rc.allowMod())
 async def remove(ctx, link : str):
     """Allows a mod to remove an unwholesome headpat"""
-    reply=getResponse('imagedne')
+    reply=getResponse(rsp.HEADPAT_IMAGE_REMOVE_EMPTY)
     if(hf.removeHeadpat(DATABASE_HOST, ctx.guild.id, link)):
-        reply=getResponse('removeimage')
+        reply=getResponse(rsp.HEADPAT_IMAGE_REMOVE)
     await ctx.reply(reply)
 
 ### Waifu Commands
@@ -165,7 +166,7 @@ async def add(ctx, link : str, *, name : str):
     Images may 403 and are not checked - be safe, use an imgur image address"""
     name=name.replace("'","") #make sure we don't breake anything in postgres
     code = hf.addContestant(DATABASE_HOST, ctx.guild.id, name, 0, 1, link)
-    await ctx.reply(getResponse('waifuadd'))
+    await ctx.reply(getResponse(rsp.WAIFU_ADD))
 
 @waifu.command()
 @commands.check_any(rc.allowMod())
@@ -175,29 +176,29 @@ async def remove(ctx, *, name : str):
     not required for eliminated waifus, those are kept to prevent duplicates
     """
     hf.deleteContestant(DATABASE_HOST,ctx.guild.id,name)
-    await ctx.reply(getResponse('waifuRemove'))
+    await ctx.reply(getResponse(rsp.WAIFU_REMOVE))
 
 @waifu.command()
 @commands.check_any(rc.allowMod())
 async def startPoll(ctx):
     """start a poll round"""
     try:
-        poll = await ctx.send(getResponse('waifustartpoll'))
+        poll = await ctx.send(getResponse(rsp.WAIFU_POLL_START))
         roundID, contestantNo = hf.startRound(DATABASE_HOST, ctx.guild.id, f'{poll.channel.id};{poll.id}')
     except Exception as e:
         print(e)
         await poll.delete()
-        await ctx.reply(getResponse('unhandled'))
+        await ctx.reply(getResponse(rsp.ERROR_UNHANDLED))
         return
     await poll.delete()
     if roundID == -1:
-        await ctx.reply(getResponse('unfinishedpoll'))
+        await ctx.reply(getResponse(rsp.WAIFU_POLL_START_EXISTS))
         return
     if roundID == -2:
-        await ctx.reply(getResponse('novalidpicks'))
+        await ctx.reply(getResponse(rsp.WAIFU_POLL_START_EMPTY))
         return
 
-    reply = await ctx.send(f'[ROUND {roundID}] '+getResponse('pollCreated'), file = discord.File('poll.jpg'))
+    reply = await ctx.send(f'[ROUND {roundID}] '+getResponse(rsp.WAIFU_POLL_START_SUCCESS), file = discord.File('poll.jpg'))
     hf.updateMessageID(DATABASE_HOST, ctx.guild.id, f'{reply.channel.id};{reply.id}', roundID)
     for i in range(contestantNo):
         rString = f'{i}\N{COMBINING ENCLOSING KEYCAP}'
@@ -209,21 +210,21 @@ async def startPoll(ctx):
 async def endPoll(ctx):
     """Finish the last poll round"""
     try:
-        reply = await ctx.send(getResponse('waifuendpoll'))
+        reply = await ctx.send(getResponse(rsp.WAIFU_POLL_END))
         roundVal = hf.getRoundMessage(DATABASE_HOST, ctx.guild.id)
     except Exception as e:
         print(e)
         await reply.delete()
-        await ctx.reply(getResponse('unhandled'))
+        await ctx.reply(getResponse(rsp.ERROR_UNHANDLED))
         return
 
     if roundVal == -1:
         await reply.delete()
-        await ctx.reply(getResponse('endedpoll'))
+        await ctx.reply(getResponse(rsp.WAIFU_POLL_END_CLOSED))
         return
     if roundVal == -2:
         await reply.delete()
-        await ctx.reply(getResponse('nopollmade'))
+        await ctx.reply(getResponse(rsp.WAIFU_POLL_END_EMPTY))
 
     roundValues = roundVal[0]
     roundNum = roundVal[1]
@@ -234,12 +235,12 @@ async def endPoll(ctx):
     if not channel:
         print('NO CHANNEL')
         await reply.delete()
-        await ctx.reply(getResponse('polldne'))
+        await ctx.reply(getResponse(rsp.WAIFU_POLL_END_DELETED))
     poll = await channel.fetch_message(int(messageID[1]))
     if not poll:
         print('NO MESSAGE')
         await reply.delete()
-        await ctx.reply(getResponse('polldne'))
+        await ctx.reply(getResponse(rsp.WAIFU_POLL_END_DELETED))
 
     votes = []
     for i in range(len(roundValues[0])):
@@ -271,7 +272,7 @@ async def addCSV(ctx):
             print(line)
             args = line.split(',')
             code = hf.addContestant(DATABASE_HOST, ctx.guild.id, args[0],args[1],args[2],args[3])
-    await ctx.reply(getResponse('waifuaddcsv'))
+    await ctx.reply(getResponse(rsp.WAIFU_ADD_CSV))
 
 ### Helper Functions and Legacy Code
 
@@ -282,7 +283,7 @@ async def handleError(message, args):
 
 async def handleWaifuPollResults(message, args):
     roundNum = -1
-    reply = await message.channel.send(getResponse('waifuendpoll'))
+    reply = await message.channel.send(getResponse(rsp.WAIFU_POLL_END))
     if len(args) > 1 and args[1].isnumeric():
         roundNum = args[1]
     else:
@@ -303,9 +304,9 @@ def setDefaultHeadpat(embed):
 
 async def setImage(url, urls):
     if not await verifyURL(url):
-        return getResponse('urlbroken')
+        return getResponse(rsp.HEADPAT_IMAGE_ADD_URL_BROKEN)
     if url +'\n' in urls:
-        return getResponse('existingurl')
+        return getResponse(rsp.HEADPAT_IMAGE_ADD_URL_EXISTS)
     urls[random.randrange(len(urls))] = url + '\n'
     await setWaifuURLs(urls)
     return ''
