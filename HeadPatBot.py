@@ -149,7 +149,7 @@ async def headpat(ctx):
 
 
 @headpat.command()
-async def add(ctx, link):
+async def add(ctx, link : str):
     """Add a headpat to fetch later"""
     reply = REPLY['unhandled']
     if not verifyURL(link):
@@ -164,10 +164,10 @@ async def add(ctx, link):
 
 @headpat.command()
 @commands.check_any(rc.allowMod())
-async def remove(ctx, url):
+async def remove(ctx, link : str):
     """Allows a mod to remove an unwholesome headpat"""
     reply=REPLY['imagedne']
-    if(hf.removeHeadpat(DATABASE_HOST, ctx.guild.id, url)):
+    if(hf.removeHeadpat(DATABASE_HOST, ctx.guild.id, link)):
         reply=REPLY['removeimage']
     await ctx.reply(reply)
 
@@ -183,7 +183,7 @@ async def add(ctx, link : str, *, name : str):
 
 @waifu.command()
 @commands.check_any(rc.allowMod())
-async def remove(ctx, *, name):
+async def remove(ctx, *, name : str):
     name=' '.join(args)
     await ctx.send('Cannot remove {} at {} yet'.format(name, link))
 
@@ -328,10 +328,6 @@ async def handleWaifuAddCSV(message : discord.Message, args):
             code = waifuAdd(message, args)
     await message.reply(REPLY['waifuaddcsv'])
 
-async def handleHeadpatRemoveImage(message, args):
-    url = args[1]
-    await message.reply(await removeImage(url, message))
-
 def setDefaultHeadpat(embed):
     embed.set_image(url = 'https://i.pinimg.com/originals/99/4b/4e/994b4e0be0832e8ebf03e97a09859864.jpg')
     embed.set_footer(text = 'There is no headpat')
@@ -344,12 +340,6 @@ async def setImage(url, urls):
     urls[random.randrange(len(urls))] = url + '\n'
     await setWaifuURLs(urls)
     return ''
-
-async def removeImage(url, message):
-    if(hf.removeHeadpat(DATABASE_HOST, message.guild.id, url)):
-        return REPLY['removeimage']
-    else:
-        return REPLY['imagedne']
 
 def verifyURL(url):
     try:
