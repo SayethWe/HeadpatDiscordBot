@@ -15,7 +15,7 @@ config.read('config.ini')
 
 TOKEN = os.environ['DISCORD_TOKEN']
 DATABASE_HOST = os.environ['DATABASE_URL']
-bot = commands.Bot(command_prefix='$')
+bot = commands.Bot(command_prefix=commands.when_mentioned_or('$'))
 
 WAIFU_REPLY = config.get('DEFAULT', 'WAIFU_REPLY')
 
@@ -87,7 +87,7 @@ ACTIVITY = (discord.Game(name = "with your waifus while you're away. | !usage"),
 async def on_ready():
     hf.createTables(DATABASE_HOST)
 
-    await bot.change_presence(activity=ACTIVITY[1])
+    await bot.change_presence(activity=ACTIVITY[random.randint(0,len(ACTIVITY)-1)])
 
     for guild in bot.guilds:
 
@@ -107,21 +107,27 @@ async def on_message_edit(before, after):
             await after.add_reaction(rString)
         await after.add_reaction(f'\N{CHEQUERED FLAG}')
 
-@bot.command()
-async def test(ctx, *args):
-    await ctx.send('{} arguments: {}'.format(len(args), ', '.join(args)))
+class TestCommands(commands.Cog):
+    """Testing Commands for Testing Things"""
 
-@bot.command()
-async def testSubs(ctx, *args):
-    subs={
-     '1':"one",
-     '2':"two"
-    }
-    if len(args) > 0:
-        sub=args[0]
-        if sub in subs:
-            await ctx.send('{} and {}'.format(subs[sub],', '.join(args[1:])))
-    await ctx.send('Test successful?')
+    @commands.command()
+    async def test(self, ctx, *args):
+        """check the handed arguments"""
+        print(ctx)
+        await ctx.send('{} arguments: {}'.format(len(args), ', '.join(args)))
+
+    @commands.command()
+    async def testSubs(self, ctx, *args):
+        """See how subarguments work"""
+        subs={
+         '1':"one",
+         '2':"two"
+        }
+        if len(args) > 0:
+            sub=args[0]
+            if sub in subs:
+                await ctx.send('{} and {}'.format(subs[sub],', '.join(args[1:])))
+        await ctx.send('Test successful?')
 
 async def handleCallCommandFunction(message, args):
     command = args[0].lower()
@@ -139,21 +145,53 @@ async def handleCallCommandFunction(message, args):
 def checkValidSubCommand(args):
     return (args[0] + args[1]).lower() in COMMANDFUNCTION
 
-@bot.command()
-async def headpat(ctx, *args):
-    message=ctx.message
-    if len(args) > 0 and checkValidSubCommand(args):
-        await handleSubCommand(message, args)
-    else:
-        await handleHeadpatGet(message, args)
+class Headpats(commands.Cog):
+    """For when you really need that headpat"""
 
-@bot.command()
-async def waifu(ctx, *args):
-    message=ctx.message
-    if len(args) > 1  and checkValidSubCommand(args):
-        await handleSubCommand(message, args)
-    else:
-        await handleError(message, args)
+    @commands.command()
+    async def headpat(self, ctx, *args):
+        """Retreive a headpat"""
+        message=ctx.message
+        if len(args) > 0 and checkValidSubCommand(args):
+            await handleSubCommand(message, args)
+        else:
+            await handleHeadpatGet(message, args)
+
+    @commands.command()
+    async def addHeadpat(self, ctx, *args):
+        """Add a headpat to fetch later"""
+        pass
+
+    @commands.command()
+    @commands.check_any(rc.allowMod())
+    async def removeHeadpat(ctx, *args):
+        """Allows a mod to remove an unwholesome headpat"""
+        pass
+
+class WaifuPolls(commands.Cog):
+    """For Running Polls and selecting the best waifu"""
+
+    @commands.command()
+    async def addWaifu(self, ctx, link, *args):
+        name=' '.join(args)
+        await ctx.send('Cannot add {} at {} yet'.format(name, link))
+
+    @commands.command()
+    @commands.check_any(rc.allowMod())
+    async def removeWaifu(self, ctx,*args):
+        name=' '.join(args)
+        await ctx.send('Cannot remove {} at {} yet'.format(name, link))
+
+    @commands.command()
+    async def endpoll(self, ctx):
+        """Finish the last poll round"""
+        pass
+
+    @commands.command()
+    @commands.check_any(rc.allowMod())
+    async def startPoll(self, ctx):
+        """start a poll round"""
+        pass
 
 async def handleWaifuAdd(message, args):
     code = waifuAdd(message, [args[1], 0, 1, args[2]])
@@ -409,11 +447,9 @@ async def make_file(message):
 
 COMMANDFUNCTION = {
     '!usage' : usage,
-    '!headpat' : headpat,
     '!headpataddimage' : handleHeadpatAddImage,
     '!headpatget' : handleHeadpatGet,
     '!headpatremoveimage' : handleHeadpatRemoveImage,
-    '!waifu' : waifu,
     '!waifuadd' : handleWaifuAdd,
     '!waifustartpoll' : handleWaifuStartPoll,
     '!waifuendpoll' : handleWaifuEndPoll,
@@ -434,4 +470,7 @@ REQLENGTH = {
     '!waifupollresults' : 1
 }
 
+bot.add_cog(TestCommands())
+bot.add_cog(Headpats())
+bot.add_cog(WaifuPolls())
 bot.run(TOKEN)
