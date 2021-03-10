@@ -10,83 +10,6 @@ from urllib import request
 from configparser import ConfigParser
 import traceback
 
-def main() :
-    '''targetHeight = 800
-    pad=5
-    offset=20
-    numCol=5
-    numRow=2
-
-    roundSize=10
-    selectivity=-1
-    immunityScale=1
-    probabilityScale=2
-
-
-    title="discord"
-
-    DATABASE_HOST=os.environ['DATABASE_URL']
-
-    #createTables(conn,title)
-    iconNums=range(roundSize)
-    resName='RoundImg.png'
-    res2Name='Round2Img.png'
-    barGraphName='barGraph.png'
-    distGraphName='histogram.png'
-    dirPath=os.path.join(os.path.dirname(__file__),title)
-    resPath=os.path.join(dirPath,resName);
-    res2Path=os.path.join(dirPath,res2Name);
-    barPath=os.path.join(dirPath,barGraphName);
-    distPath=os.path.join(dirPath,distGraphName);
-
-    res=getOptions(conn,title)
-    options=res[1]
-    immunities=res[2]
-    probability=res[3]
-    print(res)'''
-
-
-    #names=["Kongou (AHnA)","Gawr Gura","Winry Rockbell",
-    #       "Mikasa Ackerman","Asuna Yuuki","Kassandra",
-    #       "Dunkerque","Speedwagon","Rias Gremory","Rem (Re Zero)"]
-    #votes=[3,2,3,5,5,3,3,0,3,4]
-    #names=["Midna","Tsuyu Asui","Kongou (Kancolle)","Satan(Helltaker)",
-    #       "Yuno Gasai","2B","Makoto Niijima","Kyoko Kirigiri",
-    #       "Makise Kurisu","Senjougahara Hitagi"]
-    #votes=[5,1,2,2,2,6,3,3,5,1]
-
-    #res=getRound(conn,1)
-    #names=res[0][1];
-    #votes=res[0][2];
-
-    #round=storeRoundStart(conn,title,names)
-    #print(round)
-    #storeRoundEnd(conn,title,votes,1)
-
-    #roundImg=createImage(dirPath,title,names,iconNums,roundSize,targetHeight,numCol,numRow,pad,offset,conn)
-    #Save Results
-    #cv2.imwrite(resPath,roundImg)
-
-    #(barFig,distFig)=generatePlots(names,votes)
-    #barFig.savefig(barPath)
-    #distFig.savefig(distPath)
-
-    #imm,prob=calculateRound(votes,probabilityScale,immunityScale,selectivity,1)
-
-    #print(imm)
-    #print(prob)
-
-    #currSize,nextRound=generateRound(names,imm,prob,10,roundSize)
-
-    #print(names)
-    #print(nextRound)
-    #print(currSize)
-
-    #nextRoundImg=createImage(dirPath,title,nextRound,iconNums,currSize,targetHeight,numCol,numRow,pad,offset)
-    #   cv2.imwrite(res2Path,nextRoundImg)
-
-    conn.close()
-
 DEFAULTPAD = 5
 DEFAULTOFFSET = 20
 DEFAULTTARGETHEIGHT = 800
@@ -247,10 +170,7 @@ def createImage(baseDir,names, urls, iconNums,targetHeight,numCol,pad,offset):
                 imgRaw=np.asarray(bytearray(resp.read()),dtype=np.uint8)
                 imgRaw=cv2.imdecode(imgRaw,cv2.IMREAD_UNCHANGED)
 
-                #imgRaw=cv2.imread(imgPath,cv2.IMREAD_UNCHANGED)
-                #img=Image.open(imgPath)
-                #imgRaw=np.asarray(img)
-                #print(imgRaw.shape)
+                #account for transparency
                 if(imgRaw.shape[2]==4):
                     alpha=imgRaw[:,:,3]
                     rgb=imgRaw[:,:,:3]
@@ -287,9 +207,6 @@ def createImage(baseDir,names, urls, iconNums,targetHeight,numCol,pad,offset):
                                        [255, 255, 255])
 
             #concatenate images
-            #print(iconPad.shape)
-            #print(imgResize.shape)
-            #imgcat = cv2.hconcat([iconPad,imgResize])
             imgcat = np.concatenate((iconPad,imgResize),1)
 
             #create text overlay
@@ -300,7 +217,6 @@ def createImage(baseDir,names, urls, iconNums,targetHeight,numCol,pad,offset):
             imgRes[y-pad:y+h+pad,x-pad:x+w+pad]=bg[y-pad:y+h+pad,x-pad:x+w+pad]
 
             #concatenate Row
-            #imgRow=cv2.hconcat([imgRow,imgRes])
             imgRow=np.concatenate((imgRow,imgRes),1)
 
         rowLen = imgRow.shape[1]
@@ -316,7 +232,6 @@ def createImage(baseDir,names, urls, iconNums,targetHeight,numCol,pad,offset):
             longestRow=rowLen
 
         #concatenate Image
-        #imgFull = cv2.vconcat([imgFull,imgRow]);
         imgFull = np.concatenate((imgFull,imgRow),0)
 
     return imgFull
@@ -384,8 +299,6 @@ def generateRound(immunities,probabilities,roundNum,roundSize):
     print(probs)
 
     currSize=min(len(val),roundSize)
-    #print(val)
-    #print(currSize)
     picks=np.random.choice(val,currSize,False,probs)
     return picks
 
@@ -400,7 +313,6 @@ def generatePlots(options, votes):
     plt.plot(np.array([options[0],options[len(options)-1]]),np.floor(np.array([cut,cut]))+0.5,'r-')
     barFig.autofmt_xdate()
     barFig.canvas.draw()
-    #plt.show()
 
     distFig=plt.figure()
     plt.hist(votes,np.array(range(np.max(votes)+1))-0.5,None,True)
@@ -409,7 +321,6 @@ def generatePlots(options, votes):
     plt.ylabel('Count')
     plt.title('Distribution of Votes')
     distFig.canvas.draw()
-    #plt.show()
 
     return (barFig,distFig)
 
@@ -452,7 +363,6 @@ def createTables(dbURL):
             vote_options FLOAT[]
         )
         """
-        #,"CREATE EXTENSION IF NOT EXISTS tsm_system_rows"
     )
     conn=db.connect(dbURL);
     cur=conn.cursor()
@@ -497,8 +407,6 @@ def addHeadpat(dbURL,guildID,url):
     return res
 
 def getHeadpat(dbURL,guildID):
-#    commands=(f"CREATE temp TABLE temp_headpats AS SELECT * FROM headpats WHERE guild ='{guildID}'",
-#              "SELECT url FROM temp_headpats TABLESAMPLE SYSTEM_ROWS (1)")
     commands = [f"SELECT url, guild FROM headpats WHERE guild ='{guildID}' OFFSET floor(random() * (SELECT COUNT(*) FROM headpats WHERE guild = '{guildID}')) LIMIT 1"]
     conn=db.connect(dbURL);
     cur = conn.cursor()
@@ -511,8 +419,6 @@ def getHeadpat(dbURL,guildID):
     except (Exception, db.DatabaseError) as error:
         print(error)
     finally:
-        #cur.execute('DROP TABLE temp_headpats')
-        #conn.commit()
         cur.close()
         conn.close()
     return output
@@ -616,7 +522,6 @@ def storeRoundStart(dbURL,guild,names, roundNum, message):
         cur.close()
         conn.close()
 
-
 def storeRoundEnd(dbURL,guild,votes,roundNum):
     command=f"UPDATE rounds SET votes = %s WHERE round_num = %s AND guild = '{guild}'"
     conn=db.connect(dbURL)
@@ -702,4 +607,3 @@ def getOptions(dbURL, guildID) :
         cur.close()
         conn.close()
     return res
-#main()

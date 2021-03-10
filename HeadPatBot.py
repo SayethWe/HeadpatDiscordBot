@@ -281,35 +281,9 @@ async def handleError(message, args):
     response = "That isn't how it works. Here:\n" + usage
     await message.reply(response)
 
-async def handleWaifuPollResults(message, args):
-    roundNum = -1
-    reply = await message.channel.send(getResponse(rsp.WAIFU_POLL_END))
-    if len(args) > 1 and args[1].isnumeric():
-        roundNum = args[1]
-    else:
-        roundNum = hf.getRoundNum(DATABASE_HOST, message.guild.id)
-    data = hf.getRound(DATABASE_HOST, message.guild.id, roundNum)
-    if data == -1:
-        await reply.delete()
-        await message.reply(getResponse('noround'))
-
-    hf.getRoundResults(data[1], data[0], roundNum)
-    await reply.delete()
-    await message.reply('I present to you, the results', files = [discord.File('plot1.jpg'), discord.File('plot2.jpg')])
-
-
 def setDefaultHeadpat(embed):
     embed.set_image(url = 'https://i.pinimg.com/originals/99/4b/4e/994b4e0be0832e8ebf03e97a09859864.jpg')
     embed.set_footer(text = 'There is no headpat')
-
-async def setImage(url, urls):
-    if not await verifyURL(url):
-        return getResponse(rsp.HEADPAT_IMAGE_ADD_URL_BROKEN)
-    if url +'\n' in urls:
-        return getResponse(rsp.HEADPAT_IMAGE_ADD_URL_EXISTS)
-    urls[random.randrange(len(urls))] = url + '\n'
-    await setWaifuURLs(urls)
-    return ''
 
 def verifyURL(url):
     try:
