@@ -7,6 +7,7 @@ import traceback
 import RoleControl as rc
 import discord
 from discord.ext import commands
+from discord.ext.commands import Bot
 from configparser import ConfigParser
 
 config = ConfigParser()
@@ -14,7 +15,7 @@ config.read('config.ini')
 
 TOKEN = os.environ['DISCORD_TOKEN']
 DATABASE_HOST = os.environ['DATABASE_URL']
-client = discord.Client()
+bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'),help_command=commands.DefaultHelpCommand(no_category = 'Commands'))
 
 WAIFU_REPLY = config.get('DEFAULT', 'WAIFU_REPLY')
 
@@ -79,23 +80,23 @@ REPLY = {
     'waifuaddcsv' : 'Waifus added. So much waifu. Fwoooooo'
 }
 
-ACTIVITY = (discord.Game(name = "with you're waifus while You're away. | !usage"),discord.Activity(type=discord.ActivityType.watching,name='over your waifus for you | !usage'))
+ACTIVITY = (discord.Game(name = "with your waifus while you're away. | !usage"),discord.Activity(type=discord.ActivityType.watching,name='your waifus for you | !usage'))
 
 
-@client.event
+@bot.event
 async def on_ready():
     hf.createTables(DATABASE_HOST)
 
-    await client.change_presence(activity=ACTIVITY[1])
+    await bot.change_presence(activity=ACTIVITY[random.randint(0,len(ACTIVITY)-1)])
 
-    for guild in client.guilds:
+    for guild in bot.guilds:
 
         print(
-            f'{client.user} is connected to the following guild:\n'
+            f'{bot.user} is connected to the following guild:\n'
             f'{guild.name}(id: {guild.id})'
         )
 
-@client.event
+@bot.event
 async def on_message_edit(before, after):
     print((not before.pinned) and after.pinned)
     print(after.channel.name)
@@ -105,39 +106,6 @@ async def on_message_edit(before, after):
             print('i')
             await after.add_reaction(rString)
         await after.add_reaction(f'\N{CHEQUERED FLAG}')
-
-@client.event
-async def on_message(message):
-    #try:
-        print(message.content)
-        if message.author.id in (813127605502214184, 807859649621524490):
-            return
-
-        commandArgs = getArgs(message)
-        command = commandArgs[0].lower()
-
-        if  command in COMMANDFUNCTION:
-            try:
-                await handleCallCommandFunction(message, commandArgs)
-            except Exception as e:
-                traceback.print_exc()
-                await message.reply(REPLY['unhandled'] + '\n' + e)
-
-        command = '!waifupoll'
-        if  command in message.content.lower():
-            print('sending')
-            channel = discord.utils.get(message.guild.channels, name = 'waifu-rating')
-            print(channel.name)
-            pins = await channel.pins()
-
-            pin = pins[0]
-            if  len(message.content) > len(command):
-                indexString = message.content[len(command) + 1:].rstrip()
-                pin = pins[int(indexString)]
-            print(pin.content)
-            await make_file(pin)
-            await message.channel.send(content = WAIFU_REPLY, file = discord.File('waifupoll.txt'))
-
 
 async def handleCallCommandFunction(message, args):
     command = args[0].lower()
@@ -155,111 +123,147 @@ async def handleCallCommandFunction(message, args):
 def checkValidSubCommand(args):
     return (args[0] + args[1]).lower() in COMMANDFUNCTION
 
-async def handleHeadpat(message, args):
-    if len(args) > 1 and checkValidSubCommand(args):
-        await handleSubCommand(message, args)
+### Headpat commands
+
+@bot.group()
+async def headpat(ctx):
+    """For when you really need a headpat"""
+    if ctx.invoked_subcommand is None:
+        embed = discord.Embed()
+        try:
+            while(True):
+                url = hf.getHeadpat(DATABASE_HOST, ctx.guild.id)
+                if not url:
+                    setDefaultHeadpat(embed)
+                    break
+                elif verifyURL(url):
+                    embed.set_image(url=url)
+                    break
+                else:
+                    if not hf.removeHeadpat(DATABASE_HOST, message.guild.id, url):
+                        print('FAILED_REMOVE')
+                        setDefaultHeadpat(embed)
+                        break
+        except Exception as e:
+            print(e)
+            setDefaultHeadpat(embed)
+        await ctx.reply('There there... Have a headpat, ' + ctx.author.display_name, embed = embed)
+
+
+@headpat.command()
+async def add(ctx, link : str):
+    """Add a headpat to fetch later"""
+    reply = REPLY['unhandled']
+    if not verifyURL(link):
+        reply =  REPLY['urlbroken']
     else:
-        await handleHeadpatGet(message, args)
+        added = hf.addHeadpat(DATABASE_HOST, ctx.guild.id, link)
+        if added == 0:
+            reply = REPLY['addimage']
+        elif added == -1:
+            reply = REPLY['existingurl']
+    await ctx.reply(reply)
 
-async def handleWaifu(message, args):
-    if len(args) > 1  and checkValidSubCommand(args):
-        await handleSubCommand(message, args)
-    else:
-        await handleError(message, args)
+@headpat.command()
+@commands.check_any(rc.allowMod())
+async def remove(ctx, link : str):
+    """Allows a mod to remove an unwholesome headpat"""
+    reply=REPLY['imagedne']
+    if(hf.removeHeadpat(DATABASE_HOST, ctx.guild.id, link)):
+        reply=REPLY['removeimage']
+    await ctx.reply(reply)
 
-async def handleWaifuAdd(message, args):
-    code = waifuAdd(message, [args[1], 0, 1, args[2]])
-    await message.reply(REPLY['waifuadd'])
+### Waifu Commands
 
-def waifuAdd(message, args):
-    name = args[0].replace('_', ' ')
-    immunity = int(args[1])
-    probability = float(args[2])
-    url = args[3]
-    code = hf.addContestant(DATABASE_HOST, message.guild.id, name, immunity, probability, url)
-    return code
+@bot.group()
+async def waifu(ctx):
+    """Maybe return a random waifu?"""
+    if ctx.invoked_subcommand is None:
+        await ctx.send('waifu command')
 
+@waifu.command()
+async def add(ctx, link : str, *, name : str):
+    """add a waifu to the poll system
 
-async def handleError(message, args):
-    usage = getUsage(args)
-    response = "That isn't how it works. Here:\n" + usage
-    await message.reply(response)
+    Images may 403 and are not checked - be safe, use an imgur image address"""
+    name=name.replace("'","") #make sure we don't breake anything in postgres
+    code = hf.addContestant(DATABASE_HOST, ctx.guild.id, name, 0, 1, link)
+    await ctx.reply(REPLY['waifuadd'])
 
-def loadUsage():
-    #Eventual place to load in the usage command returns
-    #from readme.md or other storage text file
-    return USAGE
+@waifu.command()
+@commands.check_any(rc.allowMod())
+async def remove(ctx, *, name : str):
+    """remove a waifu from the poling system.
 
-def getUsage(args):
-    if len(args) == 0:
-        return DEFAULTUSAGE
-    command = args[0].lower()
-    if command in USAGE:
-        if len(args) > 1:
-            helperCommand = command + args[1].lower()
-            print(helperCommand)
-            if helperCommand in USAGE:
-                return USAGE[helperCommand]
-        return USAGE[command]
-    return DEFAULTUSAGE
+    not required for eliminated waifus, those are kept to prevent duplicates
+    also, not implemented
+    """
 
-async def handleWaifuStartPoll(message, args):
+    await ctx.send('Cannot remove {} at {} yet'.format(name, link))
+
+@waifu.command()
+@commands.check_any(rc.allowMod())
+async def startPoll(ctx):
+    """start a poll round"""
     try:
-        poll = await message.channel.send(REPLY['waifustartpoll'])
-        roundID, contestantNo = hf.startRound(DATABASE_HOST, message.guild.id, f'{poll.channel.id};{poll.id}')
+        poll = await ctx.send(REPLY['waifustartpoll'])
+        roundID, contestantNo = hf.startRound(DATABASE_HOST, ctx.guild.id, f'{poll.channel.id};{poll.id}')
     except Exception as e:
         print(e)
         await poll.delete()
-        await message.reply(REPLY['unhandled'])
+        await ctx.reply(REPLY['unhandled'])
         return
     await poll.delete()
     if roundID == -1:
-        await message.reply(REPLY['unfinishedpoll'])
+        await ctx.reply(REPLY['unfinishedpoll'])
         return
     if roundID == -2:
-        await message.reply(REPLY['novalidpicks'])
+        await ctx.reply(REPLY['novalidpicks'])
         return
 
-    reply = await message.channel.send(f'[ROUND {roundID}] '+DEFAULTPOLLMESSAGE, file = discord.File('poll.jpg'))
-    hf.updateMessageID(DATABASE_HOST, message.guild.id, f'{reply.channel.id};{reply.id}', roundID)
+    reply = await ctx.send(f'[ROUND {roundID}] '+DEFAULTPOLLMESSAGE, file = discord.File('poll.jpg'))
+    hf.updateMessageID(DATABASE_HOST, ctx.guild.id, f'{reply.channel.id};{reply.id}', roundID)
     for i in range(contestantNo):
         rString = f'{i}\N{COMBINING ENCLOSING KEYCAP}'
         await reply.add_reaction(rString)
     await reply.add_reaction(f'\N{CHEQUERED FLAG}')
 
-async def handleWaifuEndPoll(message, args):
+@waifu.command()
+@commands.check_any(rc.allowMod())
+async def endPoll(ctx):
+    """Finish the last poll round"""
     try:
-        reply = await message.channel.send(REPLY['waifuendpoll'])
-        roundVal = hf.getRoundMessage(DATABASE_HOST, message.guild.id)
+        reply = await ctx.send(REPLY['waifuendpoll'])
+        roundVal = hf.getRoundMessage(DATABASE_HOST, ctx.guild.id)
     except Exception as e:
         print(e)
         await reply.delete()
-        await message.reply(REPLY['unhandled'])
+        await ctx.reply(REPLY['unhandled'])
         return
 
     if roundVal == -1:
         await reply.delete()
-        await message.reply(REPLY['endedpoll'])
+        await ctx.reply(REPLY['endedpoll'])
         return
     if roundVal == -2:
         await reply.delete()
-        await message.reply(REPLY['nopollmade'])
+        await ctx.reply(REPLY['nopollmade'])
 
     roundValues = roundVal[0]
     roundNum = roundVal[1]
 
     print(roundValues)
     messageID = roundValues[2].split(';')
-    channel = client.get_channel(int(messageID[0]))
+    channel = bot.get_channel(int(messageID[0]))
     if not channel:
         print('NO CHANNEL')
         await reply.delete()
-        await message.reply(REPLY['polldne'])
+        await ctx.reply(REPLY['polldne'])
     poll = await channel.fetch_message(int(messageID[1]))
     if not poll:
         print('NO MESSAGE')
         await reply.delete()
-        await message.reply(REPLY['polldne'])
+        await ctx.reply(REPLY['polldne'])
 
     votes = []
     for i in range(len(roundValues[0])):
@@ -271,20 +275,34 @@ async def handleWaifuEndPoll(message, args):
                 count = r.count - (1 if r.me else 0)
         votes.append(count)
     print(votes)
-    hf.endRound(DATABASE_HOST, message.guild.id, votes, roundValues[0], roundNum)
+    hf.endRound(DATABASE_HOST, ctx.guild.id, votes, roundValues[0], roundNum)
     await reply.delete()
-    await message.reply('I present to you, the results', files = [discord.File('plot1.jpg'), discord.File('plot2.jpg')])
+    await ctx.reply('I present to you, the results', files = [discord.File('plot1.jpg'), discord.File('plot2.jpg')])
 
+@waifu.command()
+@commands.check_any(rc.allowMod())
+async def addCSV(ctx):
+    """Load in a whole FILE worth of Waifus"""
+    attachments = ctx.message.attachments
+    if len(attachments) == 0:
+        await handleError(message, args)
+        return
+    baseDir = os.path.dirname(__file__)
+    csvPath = os.path.join(baseDir, f'waifu{ctx.guild.id}.csv')
+    await attachments[0].save(csvPath)
+    with open(csvPath, 'r') as f:
+        for line in f.readlines():
+            print(line)
+            args = line.split(',')
+            code = hf.addContestant(DATABASE_HOST, ctx.guild.id, args[0],args[1],args[2],args[3])
+    await ctx.reply(REPLY['waifuaddcsv'])
 
+### Helper Functions and Legacy Code
 
-
-async def handleSubCommand(message, args):
-    assert(len(args) > 1)
-    command = args[0].lower()
-    commandHelper = args[1].lower()
-    args = [args[0] + commandHelper] + (args[2:])
-    print(args)
-    await handleCallCommandFunction(message, args)
+async def handleError(message, args):
+    usage = getUsage(args)
+    response = "That isn't how it works. Here:\n" + usage
+    await message.reply(response)
 
 async def handleWaifuPollResults(message, args):
     roundNum = -1
@@ -303,74 +321,6 @@ async def handleWaifuPollResults(message, args):
     await message.reply('I present to you, the results', files = [discord.File('plot1.jpg'), discord.File('plot2.jpg')])
 
 
-async def handleWaifuAddCSV(message : discord.Message, args):
-    attachments = message.attachments
-    if len(attachments) == 0:
-        await handleError(message, args)
-        return
-    baseDir = os.path.dirname(__file__)
-    csvPath = os.path.join(baseDir, f'waifu{message.guild.id}.csv')
-    await attachments[0].save(csvPath)
-    with open(csvPath, 'r') as f:
-        for line in f.readlines():
-            print(line)
-            args = line.split(',')
-            code = waifuAdd(message, args)
-    await message.reply(REPLY['waifuaddcsv'])
-
-async def handleHeadpatRemoveImage(message, args):
-    url = args[1]
-    await message.reply(await removeImage(url, message))
-
-async def handleHeadpatAddImage(message, args):
-    url = args[1]
-    reply = headpatAddImage(message,url)
-    await message.reply(reply)
-
-def headpatAddImage(message, url):
-    reply = REPLY['unhandled']
-    if not verifyURL(url):
-        reply =  REPLY['urlbroken']
-    else:
-        added = hf.addHeadpat(DATABASE_HOST, message.guild.id, url)
-        if added == 0:
-            reply = REPLY['addimage']
-        elif added == -1:
-            reply = REPLY['existingurl']
-    return reply
-
-async def handleHeadpatGet(message, args):
-    embed = discord.Embed()
-    try:
-        while(True):
-            url = hf.getHeadpat(DATABASE_HOST, message.guild.id)
-            if not url:
-                setDefaultHeadpat(embed)
-                break
-            elif verifyURL(url):
-                embed.set_image(url=url)
-                break
-            else:
-                if await removeImage(url, message) == REPLY['imagedne']:
-                    print('FAILED_REMOVE')
-                    setDefaultHeadpat(embed)
-                    break
-
-    except Exception as e:
-        print(e)
-        setDefaultHeadpat(embed)
-
-    await message.reply('There there... Have a headpat, ' + message.author.display_name, embed = embed)
-
-async def handleUsage(message, args):
-    await message.reply(getUsage(args[1:]))
-
-def getArgs(message):
-    return message.content.split(' ')
-
-def getArg(command, index):
-    return command.split(' ')[index]
-
 def setDefaultHeadpat(embed):
     embed.set_image(url = 'https://i.pinimg.com/originals/99/4b/4e/994b4e0be0832e8ebf03e97a09859864.jpg')
     embed.set_footer(text = 'There is no headpat')
@@ -384,12 +334,6 @@ async def setImage(url, urls):
     await setWaifuURLs(urls)
     return ''
 
-async def removeImage(url, message):
-    if(hf.removeHeadpat(DATABASE_HOST, message.guild.id, url)):
-        return REPLY['removeimage']
-    else:
-        return REPLY['imagedne']
-
 def verifyURL(url):
     try:
         image_formats = ("image/png", "image/jpeg", "image/jpg", "image/gif")
@@ -402,46 +346,4 @@ def verifyURL(url):
         traceback.print_exc()
         return False
 
-async def make_file(message):
-    message = await message.channel.fetch_message(message.id)
-    print(message.reactions)
-    f = open("waifupoll.txt", "w")
-    for i in range(10):
-        rString = f'1️\N{COMBINING ENCLOSING KEYCAP}'
-        count = 0
-        #await message.add_reaction(emoji)
-        for r in message.reactions:
-            if r.emoji[0] == str(i):
-                count = r.count - (1 if r.me else 0)
-        f.write(f'{count}\n')
-    f.close()
-    return
-
-COMMANDFUNCTION = {
-    '!usage' : handleUsage,
-    '!headpat' : handleHeadpat,
-    '!headpataddimage' : handleHeadpatAddImage,
-    '!headpatget' : handleHeadpatGet,
-    '!headpatremoveimage' : handleHeadpatRemoveImage,
-    '!waifu' : handleWaifu,
-    '!waifuadd' : handleWaifuAdd,
-    '!waifustartpoll' : handleWaifuStartPoll,
-    '!waifuendpoll' : handleWaifuEndPoll,
-    '!waifuaddcsv' : handleWaifuAddCSV,
-    '!waifupollresults' : handleWaifuPollResults
-}
-
-REQLENGTH = {
-    '!usage' : 1,
-    '!headpat' : 1,
-    '!headpataddimage' : 2,
-    '!headpatremoveimage' : 2,
-    '!waifu' : 2,
-    '!waifuadd' : 3,
-    '!waifustartpoll' : 1,
-    '!waifuendpoll' : 1,
-    '!waifuaddcsv' : 1,
-    '!waifupollresults' : 1
-}
-
-client.run(TOKEN)
+bot.run(TOKEN)

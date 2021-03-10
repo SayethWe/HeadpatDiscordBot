@@ -2,3 +2,5 @@
 TestEnv.py
 *.jpg
 *.pyc
+*.png
+*.csv
