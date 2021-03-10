@@ -5,7 +5,7 @@ A discord bot for distributing headpats and rating waifus.
 [Join the support server](https://discord.gg/yhQzBYqFZb)
 
 ## Features/Commands
-### !Usage command
+### !help command
 Help command - gives a list of commands when <command> argument is empty, or describes in more detail the functionality of a command.  
 Available to all roles
 ### !Headpat
@@ -19,7 +19,7 @@ Removes the specified link from the server's headpats.
 Available to moderator roles
 ### !Waifu 
 Command family for approval voting polls. Does not work without arguments.
-##### !Waifu add name_underscores_replace_spaces image.link
+##### !Waifu add image.link name
 adds a waifu to be voted on in selection polls.  
 performs some checking to ensure the link is valid, but does not always succeed.  
 Available to all roles
@@ -28,7 +28,7 @@ Adds all waifus from a csv file.
 Default CSVs for testing or bootstrapping included in github repository.  
 CSV must have columns in following order: `Name | Immunity (default 0) | Probability (default 1) | image.link`  
 Available to moderator roles
-##### !Waifu remove name_underscores_replace_spaces
+##### !Waifu remove name
 Removes the named waifu from the poll list.  
 Not required nor reccomended for eliminated waifus - those are kept by default in order to revent re-addition, but will not appear in future polls.  
 Available to moderator roles
