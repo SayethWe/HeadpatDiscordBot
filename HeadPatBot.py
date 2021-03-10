@@ -202,9 +202,9 @@ async def remove(ctx, link : str):
 
 @bot.group()
 async def waifu(ctx):
-    """Maybe return a random waifu?"""
+    """Run polls to select a server's favorite Waifus"""
     if ctx.invoked_subcommand is None:
-        await ctx.send('waifu command')
+        await ctx.send('Incomplete command - check the help documentation')
 
 @waifu.command()
 async def add(ctx, link : str, *, name : str):
