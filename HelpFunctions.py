@@ -573,11 +573,11 @@ def updateContestant(dbURL,guild,name,immunity,probability):
         conn.close()
 
 def deleteContestant(dbURL,guild,name):
-    command=f"DELETE FROM entrants WHERE name = %s AND guild = '{guild}'"
+    command=f"DELETE FROM entrants WHERE name = '{name}' AND guild = '{guild}' RETURNING image"
     conn=db.connect(dbURL);
     cur=conn.cursor()
     try:
-        cur.execute(command, (name))
+        cur.execute(command)
         url=cur.fetchone()[0]
         conn.commit()
     except (Exception, db.DatabaseError) as error:

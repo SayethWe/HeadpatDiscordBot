@@ -49,43 +49,116 @@ USAGE = {
 }
 
 REPLY = {
-    'setimage' : ("I'll never forgive you if the URL is broken or not wholesome, Baka!\n"
-                    "I got rid of someone's image for you, too, so be thankful :relieved:"),
-    'setimagenone' : ("There weren't any images to replace.\n"
-                        "Were you making fun of me? You were, weren't you? :anger:\n"
-                        "I've added your image anyway. It's not like it's a photo of me. Is it? :flushed:"),
-    'addimage' : "I know you wouldn't give me a not wholesome URL.\nWould you?\nPerhaps I'll just ignore it next time",
-    'removeall' : "I will curse you until the end of your days.\nThey're gone.\nAll of them!",
-    'urlbroken' : "That doesn't work!\nIf you don't get me a working URL, I, I'll... I'll have to do it, y'know",
-    'existingurl' : ("Are you making fun of me?\n"
-                    "Even I can tell that I already have that one. :face_with_hand_over_mouth:\n"
-                    "If you've got the time, maybe you should spend it on more worthwhile images! :anger:"),
-    'removeimage': ("Ok, it's gone\n"
-                    "It's not coming back..."),
-    'imagedne': ("I don't have that one.\n"
-                 "Do you? :face_with_hand_over_mouth:"),
-    'waifuaddexisting' : ("They're in there, baka!\n"
-                          "本当に何、この状況！:anger:"),
-    'waifuadd' : ("Waifu Waifu Waifu! More Waifu!\n"
-                  "They've been added to the pool"),
-    'waifuRemove' : ("They're Gone.\n"
-                     "*Less competition for me, I suppose.*"),
-    'waifustartpoll' : ('Just a sec...'),
-    'waifuendpoll' : ('Wait a bit...'),
-    'unhandled' : 'Something happened, report this to the devs\nhttps://github.com/SayethWe/HeadpatDiscordBot/issues',
-    'unfinishedpoll' : 'Nah uh uh, you have an unfinsihed poll, call !waifu endpoll starting a new one',
-    'novalidpicks' : 'Not enough waifu, MOAR needed.\nYour waifus need a break, you know.',
-    'endedpoll' : 'We already recorded and finished the poll. You can use !waifu pollresults to get results from now on',
-    'nopollmade' : 'You gotta start a poll first',
-    'polldne' : "The message with the previous poll might have been deleted, I can't find it",
-    'forbidden' : "You can't do that, go ask a mod",
-    'waifuaddcsv' : 'Waifus added. So much waifu. Fwoooooo'
+    'setimage' :
+    [
+        ("I'll never forgive you if the URL is broken or not wholesome, Baka!\n"
+         "I got rid of someone's image for you, too, so be thankful :relieved:")
+    ],
+    'setimagenone' :
+    [
+        ("There weren't any images to replace.\n"
+         "Were you making fun of me? You were, weren't you? :anger:\n"
+         "I've added your image anyway. It's not like it's a photo of me. Is it? :flushed:")
+    ],
+    'addimage' :
+    [
+        ("I know you wouldn't give me a not wholesome URL.\n"
+         "Would you?\n"
+         "Perhaps I'll just ignore it next time")
+    ],
+    'removeall' :
+    [
+        ("I will curse you until the end of your days.\n"
+         "They're gone.\n"
+         "All of them!")
+    ],
+    'urlbroken' :
+    [
+        ("That doesn't work!\n"
+         "If you don't get me a working URL, I, I'll... I'll have to do it, y'know")
+    ],
+    'existingurl' :
+    [
+        ("Are you making fun of me?\n"
+         "Even I can tell that I already have that one. :face_with_hand_over_mouth:\n"
+         "If you've got the time, maybe you should spend it on more worthwhile images! :anger:")
+    ],
+    'removeimage':
+    [
+        ("Ok, it's gone\n"
+         "It's not coming back...")
+    ],
+    'imagedne':
+    [
+        ("I don't have that one.\n"
+         "Do you? :face_with_hand_over_mouth:")
+    ],
+    'waifuaddexisting' :
+    [
+        ("They're in there, baka!\n"
+         "本当に何、この状況！:anger:")
+    ],
+    'waifuadd' :
+    [
+        ("Waifu Waifu Waifu! More Waifu!\n"
+         "They've been added to the pool")
+    ],
+    'waifuRemove' :
+    [
+        ("They're Gone.\n"
+         "*Less competition, I suppose.*"),
+        ("I removed that inferior choice for you.\n"
+         "Pick better next time, okay?")
+    ],
+    'waifustartpoll' :
+    [
+        ("Just a sec...")
+    ],
+    'waifuendpoll' :
+    [
+        ("Wait a bit...")
+    ],
+    'unhandled' :
+    [
+        ("Something happened, report this to the devs\n"
+         "https://github.com/SayethWe/HeadpatDiscordBot/issues")
+    ],
+    'unfinishedpoll' :
+    [
+        ('Nah uh uh, you have an unfinsihed poll, call !waifu endpoll starting a new one')
+    ],
+    'novalidpicks' :
+    [
+        ("Not enough waifu, MOAR needed.\n"
+         "Your waifus need a break, you know.")
+    ],
+    'endedpoll' :
+    [
+        ("We already recorded and finished the poll. You can use !waifu pollresults to get results from now on")
+    ],
+    'nopollmade' :
+    [
+        ("You gotta start a poll first")
+    ],
+    'polldne' :
+    [
+        ("The message with the previous poll might have been deleted, I can't find it")
+    ],
+    'forbidden' :
+    [
+        ("You can't do that, go ask a mod")
+    ],
+    'waifuaddcsv' :
+    [
+        ("Waifus added. So much waifu. Fwoooooo")
+    ]
 }
 
 ERRORS_HANDLED = {
     'MissingRequiredArgument' : "That's not enough information! Come back when you have more",
     'CheckFailure' : "Something tells me I'm not supposed to do this for you right now.",
-    'CheckAnyFailure' : "You're not allowed to do that. Go find someone who is."
+    'CheckAnyFailure' : "You're not allowed to do that. Go find someone who is.",
+    'CommandNotFound' : "That's not a command I recognize. Maybe you should ask for help?"
 }
 
 ACTIVITY = (discord.Game(name = "with your waifus while you're away. | !help"),
@@ -129,7 +202,7 @@ async def on_command_error(ctx,error):
     key = type(error).__name__
     print(key)
     if not key in ERRORS_HANDLED:
-        await ctx.reply(REPLY['unhandled']+"\n{}".format(error))
+        await ctx.reply(getResponse('unhandled')+"\n{}".format(error))
     else:
         await ctx.reply(ERRORS_HANDLED[key])
 
@@ -154,7 +227,7 @@ async def handleCallCommandFunction(message, args):
             else:
                 await handleError(message, args)
         else:
-            await message.reply(REPLY['forbidden'])
+            await message.reply(getResponse('forbidden'))
     else:
         await handleError(message, args)
 
@@ -191,24 +264,24 @@ async def headpat(ctx):
 @headpat.command()
 async def add(ctx, link : str):
     """Add a headpat to fetch later"""
-    reply = REPLY['unhandled']
+    reply = getResponse('unhandled')
     if not verifyURL(link):
-        reply =  REPLY['urlbroken']
+        reply =  getResponse('urlbroken')
     else:
         added = hf.addHeadpat(DATABASE_HOST, ctx.guild.id, link)
         if added == 0:
-            reply = REPLY['addimage']
+            reply = getResponse('addimage')
         elif added == -1:
-            reply = REPLY['existingurl']
+            reply = getResponse('existingurl')
     await ctx.reply(reply)
 
 @headpat.command()
 @commands.check_any(rc.allowMod())
 async def remove(ctx, link : str):
     """Allows a mod to remove an unwholesome headpat"""
-    reply=REPLY['imagedne']
+    reply=getResponse('imagedne')
     if(hf.removeHeadpat(DATABASE_HOST, ctx.guild.id, link)):
-        reply=REPLY['removeimage']
+        reply=getResponse('removeimage')
     await ctx.reply(reply)
 
 ### Waifu Commands
@@ -226,7 +299,7 @@ async def add(ctx, link : str, *, name : str):
     Images may 403 and are not checked - be safe, use an imgur image address"""
     name=name.replace("'","") #make sure we don't breake anything in postgres
     code = hf.addContestant(DATABASE_HOST, ctx.guild.id, name, 0, 1, link)
-    await ctx.reply(REPLY['waifuadd'])
+    await ctx.reply(getResponse('waifuadd'))
 
 @waifu.command()
 @commands.check_any(rc.allowMod())
@@ -236,26 +309,26 @@ async def remove(ctx, *, name : str):
     not required for eliminated waifus, those are kept to prevent duplicates
     """
     hf.deleteContestant(DATABASE_HOST,ctx.guild.id,name)
-    await ctx.reply(REPLY['waifuRemove'])
+    await ctx.reply(getResponse('waifuRemove'))
 
 @waifu.command()
 @commands.check_any(rc.allowMod())
 async def startPoll(ctx):
     """start a poll round"""
     try:
-        poll = await ctx.send(REPLY['waifustartpoll'])
+        poll = await ctx.send(getResponse('waifustartpoll'))
         roundID, contestantNo = hf.startRound(DATABASE_HOST, ctx.guild.id, f'{poll.channel.id};{poll.id}')
     except Exception as e:
         print(e)
         await poll.delete()
-        await ctx.reply(REPLY['unhandled'])
+        await ctx.reply(getResponse('unhandled'))
         return
     await poll.delete()
     if roundID == -1:
-        await ctx.reply(REPLY['unfinishedpoll'])
+        await ctx.reply(getResponse('unfinishedpoll'))
         return
     if roundID == -2:
-        await ctx.reply(REPLY['novalidpicks'])
+        await ctx.reply(getResponse('novalidpicks'))
         return
 
     reply = await ctx.send(f'[ROUND {roundID}] '+DEFAULTPOLLMESSAGE, file = discord.File('poll.jpg'))
@@ -270,21 +343,21 @@ async def startPoll(ctx):
 async def endPoll(ctx):
     """Finish the last poll round"""
     try:
-        reply = await ctx.send(REPLY['waifuendpoll'])
+        reply = await ctx.send(getResponse('waifuendpoll'))
         roundVal = hf.getRoundMessage(DATABASE_HOST, ctx.guild.id)
     except Exception as e:
         print(e)
         await reply.delete()
-        await ctx.reply(REPLY['unhandled'])
+        await ctx.reply(getResponse('unhandled'))
         return
 
     if roundVal == -1:
         await reply.delete()
-        await ctx.reply(REPLY['endedpoll'])
+        await ctx.reply(getResponse('endedpoll'))
         return
     if roundVal == -2:
         await reply.delete()
-        await ctx.reply(REPLY['nopollmade'])
+        await ctx.reply(getResponse('nopollmade'))
 
     roundValues = roundVal[0]
     roundNum = roundVal[1]
@@ -295,12 +368,12 @@ async def endPoll(ctx):
     if not channel:
         print('NO CHANNEL')
         await reply.delete()
-        await ctx.reply(REPLY['polldne'])
+        await ctx.reply(getResponse('polldne'))
     poll = await channel.fetch_message(int(messageID[1]))
     if not poll:
         print('NO MESSAGE')
         await reply.delete()
-        await ctx.reply(REPLY['polldne'])
+        await ctx.reply(getResponse('polldne'))
 
     votes = []
     for i in range(len(roundValues[0])):
@@ -332,7 +405,7 @@ async def addCSV(ctx):
             print(line)
             args = line.split(',')
             code = hf.addContestant(DATABASE_HOST, ctx.guild.id, args[0],args[1],args[2],args[3])
-    await ctx.reply(REPLY['waifuaddcsv'])
+    await ctx.reply(getResponse('waifuaddcsv'))
 
 ### Helper Functions and Legacy Code
 
@@ -343,7 +416,7 @@ async def handleError(message, args):
 
 async def handleWaifuPollResults(message, args):
     roundNum = -1
-    reply = await message.channel.send(REPLY['waifuendpoll'])
+    reply = await message.channel.send(getResponse('waifuendpoll'))
     if len(args) > 1 and args[1].isnumeric():
         roundNum = args[1]
     else:
@@ -351,7 +424,7 @@ async def handleWaifuPollResults(message, args):
     data = hf.getRound(DATABASE_HOST, message.guild.id, roundNum)
     if data == -1:
         await reply.delete()
-        await message.reply(REPLY['noround'])
+        await message.reply(getResponse('noround'))
 
     hf.getRoundResults(data[1], data[0], roundNum)
     await reply.delete()
@@ -364,9 +437,9 @@ def setDefaultHeadpat(embed):
 
 async def setImage(url, urls):
     if not await verifyURL(url):
-        return REPLY['urlbroken']
+        return getResponse('urlbroken')
     if url +'\n' in urls:
-        return REPLY['existingurl']
+        return getResponse('existingurl')
     urls[random.randrange(len(urls))] = url + '\n'
     await setWaifuURLs(urls)
     return ''
@@ -382,5 +455,8 @@ def verifyURL(url):
     except Exception as e:
         traceback.print_exc()
         return False
+
+def getResponse(key : str):
+    return random.choice(REPLY[key])
 
 bot.run(TOKEN)
