@@ -94,6 +94,10 @@ REPLY = {
     [
         ("The message with the previous poll might have been deleted, I can't find it")
     ],
+    'pollCreated':
+    [
+        ("Here's your round. But we all know that I'm the only one who deserves any votes.")
+    ],
     'forbidden' :
     [
         ("You can't do that, go ask a mod")

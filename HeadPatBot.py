@@ -20,37 +20,6 @@ bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'))
 
 WAIFU_REPLY = config.get('DEFAULT', 'WAIFU_REPLY')
 
-DEFAULTPOLLMESSAGE = ("Here's your round. But we all know that I'm the only one who deserves any votes.")
-
-DEFAULTUSAGE = (
-            'Commands list:\n'
-            '    !usage\n'
-            '    !waifu\n'
-            '    !headpat\n'
-            'Extra Functionality:\n'
-            '    poll [DEPRECATED]\n'
-            '!usage <any of the above commands or functionalities>')
-
-USAGE = {
-    '!usage' : 'de nada, nuh uh',
-    '!headpat' : '!headpat <nothing>/setimage <url>/addimage/removeimage <url>\nWant headpats? Why not? Have Some!',
-    '!waifupoll' : '!waifupoll /<poll number (goes in reverse order, 0 is latest)>\nResults results results.',
-    'poll' : ('Pinning a message in a channel called waifu-rating will cause it to be reacted to with 1-10 and '
-    'the chequered flag\nEasy polls for lazy folk [DEPRECIATED]'),
-    '!waifu' : ('!waifu add/poll\n'
-                'Easy polls for lazy folk, recommended use with waifus\n'),
-    '!waifuadd' : ('!waifu add <name_underscores_for_spaces> <imageurl aspect ratio about 1:3>\n'
-                   'Fulfill your deepest, darkest dream: being wholesome\n'
-                   'Adds waifus to the poll candidates'),
-    '!headpataddimage' : "!headpat addimage <url>\nYou want some of that action, don't you?",
-    '!headpatsetimage' : ("!headpat setimage <url>\nThe headpat equivalent of a shotgun with a blindfold\n"
-                          "Some random image will be removed, and replaced with yours\n"
-                          "Overusing this is bad. Don't be bad"),
-    '!headpatremoveimage' : ("")
-}
-
-
-
 ERRORS_HANDLED = {
     'MissingRequiredArgument' : "That's not enough information! Come back when you have more",
     'CheckFailure' : "Something tells me I'm not supposed to do this for you right now.",
@@ -228,7 +197,7 @@ async def startPoll(ctx):
         await ctx.reply(getResponse('novalidpicks'))
         return
 
-    reply = await ctx.send(f'[ROUND {roundID}] '+DEFAULTPOLLMESSAGE, file = discord.File('poll.jpg'))
+    reply = await ctx.send(f'[ROUND {roundID}] '+getResponse('pollCreated'), file = discord.File('poll.jpg'))
     hf.updateMessageID(DATABASE_HOST, ctx.guild.id, f'{reply.channel.id};{reply.id}', roundID)
     for i in range(contestantNo):
         rString = f'{i}\N{COMBINING ENCLOSING KEYCAP}'
