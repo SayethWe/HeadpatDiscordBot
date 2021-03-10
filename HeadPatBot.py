@@ -140,7 +140,7 @@ async def headpat(ctx):
                     embed.set_image(url=url)
                     break
                 else:
-                    if await removeImage(url, ctx.message) == REPLY['imagedne']:
+                    if not hf.removeHeadpat(DATABASE_HOST, message.guild.id, url):
                         print('FAILED_REMOVE')
                         setDefaultHeadpat(embed)
                         break
