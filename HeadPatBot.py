@@ -85,22 +85,6 @@ async def on_message_edit(before, after):
             await after.add_reaction(rString)
         await after.add_reaction(f'\N{CHEQUERED FLAG}')
 
-async def handleCallCommandFunction(message, args):
-    command = args[0].lower()
-    if command in COMMANDFUNCTION:
-        if rc.ROLECONTROLDEFAULT[command](message):
-            if len(args) >= REQLENGTH[command]:
-                await COMMANDFUNCTION[command](message, args)
-            else:
-                await handleError(message, args)
-        else:
-            await message.reply(getResponse(rsp.ERROR_FORBIDDEN))
-    else:
-        await handleError(message, args)
-
-def checkValidSubCommand(args):
-    return (args[0] + args[1]).lower() in COMMANDFUNCTION
-
 ### Headpat commands
 
 @bot.group()
@@ -262,7 +246,7 @@ async def addCSV(ctx):
     """Load in a whole FILE worth of Waifus"""
     attachments = ctx.message.attachments
     if len(attachments) == 0:
-        await handleError(message, args)
+        await ctx.reply(getResponse(rsp.WAIFU_ADD_CSV_MISSING))
         return
     baseDir = os.path.dirname(__file__)
     csvPath = os.path.join(baseDir, f'waifu{ctx.guild.id}.csv')
@@ -275,11 +259,6 @@ async def addCSV(ctx):
     await ctx.reply(getResponse(rsp.WAIFU_ADD_CSV))
 
 ### Helper Functions and Legacy Code
-
-async def handleError(message, args):
-    usage = getUsage(args)
-    response = "That isn't how it works. Here:\n" + usage
-    await message.reply(response)
 
 def setDefaultHeadpat(embed):
     embed.set_image(url = 'https://i.pinimg.com/originals/99/4b/4e/994b4e0be0832e8ebf03e97a09859864.jpg')
