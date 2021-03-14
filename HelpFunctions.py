@@ -332,7 +332,9 @@ def createTables(dbURL):
             guild TEXT NOT NULL,
             immunity INTEGER NOT NULL,
             probability FLOAT NOT NULL,
+            challenge INTEGER NOT NULL,
             image TEXT NOT NULL,
+            claimant TEXT,
             PRIMARY KEY (name, guild)
             )
         """,
@@ -361,6 +363,16 @@ def createTables(dbURL):
             call_roles TEXT,
             image_options FLOAT[],
             vote_options FLOAT[]
+        )
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS gacha (
+        guild TEXT NOT NULL,
+        userid TEXT NOT NULL,
+        tickets INTEGER NOT NULL,
+        score INTEGER,
+        challenge TEXT,
+        PRIMARY KEY (guild, userid)
         )
         """
     )
@@ -576,10 +588,10 @@ def getRoundNum(dbURL,guild):
     return res
 
 def getContestants(dbURL,guildID):
-    command= f"SELECT name, immunity, probability, image from entrants WHERE guild = '{guildID}'"
+    command= f"SELECT name, immunity, probability, image, challenge from entrants WHERE guild = '{guildID}'"
     conn=db.connect(dbURL)
     cur=conn.cursor()
-    res=[-1,-1,-1]
+    res=[-1,-1,-1,-1,-1]
     try:
         cur.execute(command)
         conn.commit()
@@ -595,10 +607,10 @@ def getOptions(dbURL, guildID) :
     command = f"SELECT * FROM options WHERE guild = '{guildID}''"
     conn=db.connect(dbURL)
     cur=conn.cursor()
-    defaults=("!headpat",[],[],[800,5,20,5,2],[10 -1, 1, 2])
+    defaults=("!",[],[],[800,5,20,5,2],[10 -1, 1, 2])
     res=defaults
     try:
-        cur.execute(command, (title))
+        cur.execute(command)
         conn.commit()
         res=cur.fetchall()
     except (Exception, db.DatabaseError) as error:
@@ -607,3 +619,72 @@ def getOptions(dbURL, guildID) :
         cur.close()
         conn.close()
     return res
+
+def claimWaifu(dbURL, guildID, user, name):
+    command=(f"UPDATE entrants SET claimaint = {user} WHERE guild = '{guildID}' AND name = '{name}'")
+    conn=db.connect(dbURL)
+    cur=conn.cursor()
+    try:
+        cur.execute(command)
+        conn.commit()
+    except (Exception, db.DatabaseError) as error:
+        print(error)
+    finally:
+        cur.close()
+        conn.close()
+
+def fetchUserInfo(dbURL, guildID, userId):
+    command = f"""
+    INSERT INTO gacha (guild, userid, tickets, score) VALUES('{guildID}','{userId}',0,0)
+    ON CONFLICT (guild, userid)
+    DO
+    UPDATE SET tickets = gacha.tickets
+    RETURNING tickets, score
+    """
+    res=([0,0])
+    conn=db.connect(dbURL)
+    cur=conn.cursor()
+    try:
+        cur.execute(command)
+        conn.commit()
+        res=cur.fetchall()
+    except (Exception, db.DatabaseError) as error:
+        print(error)
+    finally:
+        cur.close()
+        conn.close()
+    return res
+
+def updateTickets(dbURL, guildID, userId, tickets):
+    command=f"""
+        UPDATE gacha SET tickets={tickets}
+        WHERE guild = '{guildID}' AND userid = '{userId}'
+        """
+    conn=db.connect(dbURL)
+    cur=conn.cursor()
+    try:
+        cur.execute(command)
+        conn.commit()
+    except (Exception, db.DatabaseError) as error:
+        print(error)
+    finally:
+        cur.close()
+        conn.close()
+
+def updateScore(dbURL, guildID, userId, score):
+    command=f"""
+        INSERT INTO gacha (userid, score) VALUES ('{userId}',{score})
+        ON CONFLICT (userid)
+        DO
+        UPDATE gacha SET score={score} WHERE guild = '{guildID}' AND userid = '{userId}'
+    """
+    conn=db.connect(dbURL)
+    cur=conn.cursor()
+    try:
+        cur.execute(command)
+        conn.commit()
+    except (Exception, db.DatabaseError) as error:
+        print(error)
+    finally:
+        cur.close()
+        conn.close()

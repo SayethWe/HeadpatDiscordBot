@@ -31,6 +31,8 @@ ERRORS_HANDLED = {
 ACTIVITY = (discord.Game(name = "with your waifus while you're away. | !help"),
 discord.Activity(type=discord.ActivityType.watching,name='your waifus for you | !help'))
 
+TICKETS_PER_POLL = 2;
+
 ### Help Command
 
 class MyHelpCommand(commands.MinimalHelpCommand):
@@ -227,14 +229,23 @@ async def endPoll(ctx):
         await ctx.reply(getResponse(rsp.WAIFU_POLL_END_DELETED))
 
     votes = []
-    for i in range(len(roundValues[0])):
-        rString = f'1️\N{COMBINING ENCLOSING KEYCAP}'
-        count = 0
+
         #await message.add_reaction(emoji)
-        for r in poll.reactions:
+    for r in poll.reactions:
+        for i in range(len(roundValues[0])):
             if r.emoji[0] == str(i):
                 count = r.count - (1 if r.me else 0)
-        votes.append(count)
+                votes.append(count)
+        print(r.emoji)
+        if r.emoji == f'\N{CHEQUERED FLAG}':
+            users=await r.users().flatten()
+            print('flag found! has {} reactions'.format(r.count))
+            for user in users:
+                print('reaction from {}'.format(user.id))
+                #give em tickets!
+                balance=hf.fetchUserInfo(DATABASE_HOST,ctx.guild.id,user.id)[0]
+                print('{} has {} tickets (going to {}) and {} score'.format(user.id,balance[0],balance[0]+TICKETS_PER_POLL,balance[1]))
+                hf.updateTickets(DATABASE_HOST,ctx.guild.id,user.id,balance[0]+TICKETS_PER_POLL)
     print(votes)
     hf.endRound(DATABASE_HOST, ctx.guild.id, votes, roundValues[0], roundNum)
     await reply.delete()
@@ -257,6 +268,23 @@ async def addCSV(ctx):
             args = line.split(',')
             code = hf.addContestant(DATABASE_HOST, ctx.guild.id, args[0],args[1],args[2],args[3])
     await ctx.reply(getResponse(rsp.WAIFU_ADD_CSV))
+
+### Gacha Commands
+
+@waifu.command()
+@commands.cooldown(2,16*3600,commands.BucketType.user)
+async def pull(ctx, tickets):
+    pass
+
+@waifu.command()
+async def challenge(ctx, other):
+    pass
+
+@waifu.command()
+async def balance(ctx):
+    balance = hf.fetchUserInfo(DATABASE_HOST    , ctx.guild.id, ctx.author.id)[0]
+    print(balance)
+    await ctx.reply('you have {} tickets and have scored {} points'.format(balance[0],balance[1]))
 
 ### Helper Functions and Legacy Code
 
