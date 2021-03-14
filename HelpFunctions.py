@@ -10,6 +10,8 @@ from urllib import request
 from configparser import ConfigParser
 import traceback
 
+import gacha
+
 DEFAULTPAD = 5
 DEFAULTOFFSET = 20
 DEFAULTTARGETHEIGHT = 800
@@ -57,7 +59,7 @@ def startRound(dbURL, guild, message):
         return -1
 
     contestants = getContestants(dbURL, guild)
-    print(contestants)
+   #print(contestants)
     #print(roundValues)
     names = [row[0] for row in contestants]
     immunities = [row[1] for row in contestants]
@@ -65,7 +67,7 @@ def startRound(dbURL, guild, message):
     urls = [row[3] for row in contestants]
 
     roundNum = roundNum  + 1
-    print(roundNum)
+   #print(roundNum)
 
     picks = generateRound(immunities, probabilities, roundNum, 10)
     if picks == []:
@@ -117,8 +119,13 @@ def endRound(dbURL, guild, votes, contestants, roundNum):
     '''
     (immunities, probabilities)=getRoundResults(votes, contestants, roundNum)
 
+    oldCR=[]
+    for contestant in contestants:
+        oldCR.append(getChallenge(dbURL, guild, contestant)[0][0])
+    CRs = gacha.updateCRs(votes,oldCR)
+
     for i in range(len(contestants)):
-        updateContestant(dbURL, guild, contestants[i], immunities[i], probabilities[i])
+        updateContestant(dbURL, guild, contestants[i], immunities[i], probabilities[i], CRs[i])
 
     storeRoundEnd(dbURL, guild, votes, roundNum)
     return roundNum
@@ -240,16 +247,16 @@ def calculateRound(contestants,votes,probOffset,immunityScale,selectivity,roundN
     '''
         Calculates immunities and probabilities for a round
     '''
-    print(contestants)
-    print(votes)
+    #print(contestants)
+    #print(votes)
     ones=np.ones(len(votes))
     arr=np.array(votes)
     con=np.array(contestants)
-    print(arr)
+    #print(arr)
     X=arr[arr!=0]
-    print(X)
+    #print(X)
     if len(X)==0:
-        print('ZERO')
+        #print('ZERO')
         imm=-1*np.ones(len(arr))
         prob=np.zeros(len(arr))
         elim=con
@@ -285,8 +292,8 @@ def generateRound(immunities,probabilities,roundNum,roundSize):
     valProb=np.array(probabilities)[imm<roundNum]
     imm=imm[imm<roundNum]
 
-    print(val)
-    print(imm)
+    #print(val)
+    #print(imm)
 
     val=val[imm>=0]
     valProb=valProb[imm>=0]
@@ -296,7 +303,7 @@ def generateRound(immunities,probabilities,roundNum,roundSize):
 
     probSum=np.sum(valProb)*np.ones(len(val))
     probs=valProb/probSum
-    print(probs)
+   #print(probs)
 
     currSize=min(len(val),roundSize)
     picks=np.random.choice(val,currSize,False,probs)
@@ -383,7 +390,7 @@ def createTables(dbURL):
             cur.execute(command)
         conn.commit()
     except (Exception, db.DatabaseError) as error:
-        print(error)
+       print(error)
     finally:
         cur.close()
         conn.close()
@@ -472,17 +479,17 @@ def addContestant(dbURL,guild,name, immunity, probability, imageURL):
         conn.close()
     return res
 
-def updateContestant(dbURL,guild,name,immunity,probability):
+def updateContestant(dbURL,guild,name,immunity,probability,challenge):
     command= f"""
         UPDATE entrants
-        SET (immunity,probability) = (%s,%s)
+        SET (immunity,probability,challenge) = (%s,%s,%s)
         WHERE name = %s
         AND guild = '{guild}'
         """
     conn=db.connect(dbURL);
     cur=conn.cursor()
     try:
-        cur.execute(command, (immunity, probability, name))
+        cur.execute(command, (immunity, probability, challenge, name))
         conn.commit()
     except (Exception, db.DatabaseError) as error:
         print(error)
@@ -580,6 +587,22 @@ def getRoundNum(dbURL,guild):
             res = 0
         else:
             res = res[0]
+    except (Exception, db.DatabaseError) as error:
+        print(error)
+    finally:
+        cur.close()
+        conn.close()
+    return res
+
+def getChallenge(dbURL,guildID,name):
+    command=f"SELECT challenge FROM entrants WHERE guild = '{guildID}' AND name = '{name}'"
+    conn=db.connect(dbURL)
+    cur=conn.cursor()
+    res=[-1]
+    try:
+        cur.execute(command)
+        conn.commit()
+        res=cur.fetchall()
     except (Exception, db.DatabaseError) as error:
         print(error)
     finally:

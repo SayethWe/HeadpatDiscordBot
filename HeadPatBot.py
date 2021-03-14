@@ -236,8 +236,9 @@ async def endPoll(ctx):
             if r.emoji[0] == str(i):
                 count = r.count - (1 if r.me else 0)
                 votes.append(count)
-        print(r.emoji)
+        #print(r.emoji)
         if r.emoji == f'\N{CHEQUERED FLAG}':
+            #give out tickets for participation
             users=await r.users().flatten()
             print('flag found! has {} reactions'.format(r.count))
             for user in users:
@@ -283,7 +284,7 @@ async def challenge(ctx, other):
 @waifu.command()
 async def balance(ctx):
     balance = hf.fetchUserInfo(DATABASE_HOST    , ctx.guild.id, ctx.author.id)[0]
-    print(balance)
+    #print(balance)
     await ctx.reply('you have {} tickets and have scored {} points'.format(balance[0],balance[1]))
 
 ### Helper Functions and Legacy Code
