@@ -276,6 +276,7 @@ async def addCSV(ctx):
 @waifu.command()
 #@commands.cooldown(2,16*3600,commands.BucketType.user)
 async def pull(ctx, tickets : int = 1):
+    """Pull a random Waifu for your own collection"""
     balance = hf.fetchUserInfo(DATABASE_HOST, ctx.guild.id, ctx.author.id)[0]
     if balance[0] < tickets:
         await ctx.reply(getResponse(rsp.GACHA_PULL_INSUFFICIENT))
@@ -300,10 +301,12 @@ async def pull(ctx, tickets : int = 1):
 
 @waifu.command()
 async def challenge(ctx, other):
+    """Challenge someone else to a waifu showdown to see who has better taste"""
     pass
 
 @waifu.command()
 async def info(ctx, *, name : str):
+    """Get a breakdown of a waifu"""
     challenge = hf.getChallenge(DATABASE_HOST, ctx.guild.id, name)[0][0]
     image = hf.getImageURL(DATABASE_HOST, ctx.guild.id, name)
     claimID=hf.whoClaimed(DATABASE_HOST, ctx.guild.id, name)[0]
@@ -322,6 +325,7 @@ async def info(ctx, *, name : str):
 
 @waifu.command()
 async def balance(ctx):
+    """See how rich, and therefore attractive, you are"""
     balance = hf.fetchUserInfo(DATABASE_HOST, ctx.guild.id, ctx.author.id)[0]
     #print(balance)
     await ctx.reply('you have {} tickets and have scored {} points'.format(balance[0],balance[1]))
