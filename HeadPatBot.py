@@ -275,7 +275,7 @@ async def addCSV(ctx):
 
 @waifu.command()
 #@commands.cooldown(2,16*3600,commands.BucketType.user)
-async def pull(ctx, tickets : int):
+async def pull(ctx, tickets : int = 1):
     balance = hf.fetchUserInfo(DATABASE_HOST, ctx.guild.id, ctx.author.id)[0]
     if balance[0] < tickets:
         await ctx.reply(getResponse(rsp.GACHA_PULL_INSUFFICIENT))
@@ -286,9 +286,14 @@ async def pull(ctx, tickets : int):
         names = [row[0] for row in contestants]
         challenge = [row[1] for row in contestants]
         pull = gacha.pull(names, challenge, tickets)
+        challenge = hf.getChallenge(DATABASE_HOST, ctx.guild.id, pull)[0][0]
+        image = hf.getImageURL(DATABASE_HOST, ctx.guild.id, pull)
         hf.claimWaifu(DATABASE_HOST, ctx.guild.id, ctx.author.id, pull)
         hf.updateTickets(DATABASE_HOST, ctx.guild.id, ctx.author.id, balance[0]-tickets)
-        await ctx.reply(getResponse(rsp.GACHA_PULL).format(pull))
+        embed = discord.Embed()
+        embed.set_image(url=image)
+        embed.set_footer(text=getResponse(rsp.GACHA_PULL_CHALLENGE).format(challenge))
+        await ctx.reply(getResponse(rsp.GACHA_PULL).format(pull), embed = embed)
 
 @waifu.command()
 async def challenge(ctx, other):
@@ -303,9 +308,10 @@ async def info(ctx, *, name : str):
     #print(await bot.fetch_user(132650983011385347))
     claimaint = await bot.fetch_user(claimID)
     print(image)
-    embed = discord.Embed()
+    embed = discord.Embed(title=name)
     embed.set_image(url=image);
-    await ctx.reply(f"{name}:\n  Strength:{challenge}\n  Claimed by:{claimaint.display_name}", embed=embed)
+    embed.set_footer(text=f"Strength:{challenge}\nClaimed by:{claimaint.display_name}")
+    await ctx.reply(embed=embed)
 
 @waifu.command()
 async def balance(ctx):

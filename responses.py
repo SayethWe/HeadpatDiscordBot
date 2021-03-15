@@ -26,6 +26,7 @@ class Responses(Enum):
     WAIFU_POLL_END_DELETED='polldne'
 
     GACHA_PULL='pullWaifu'
+    GACHA_PULL_CHALLENGE='pullwaifuchallenge'
     GACHA_PULL_INSUFFICIENT='lowcredits'
     GACHA_PULL_NONPOSITIVE='illegalcredits'
 
@@ -150,7 +151,11 @@ REPLY = {
     ],
     Responses.GACHA_PULL:
     [
-        ("You've just pulled {}!")
+        ("You've just pulled {}")
+    ],
+    Responses.GACHA_PULL_CHALLENGE:
+    [
+        ("challenge rating: {}")
     ],
     Responses.GACHA_PULL_NONPOSITIVE:
     [
