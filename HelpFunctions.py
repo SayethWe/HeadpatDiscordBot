@@ -459,10 +459,10 @@ def removeHeadpat(dbURL,guildID,url):
         conn.close()
     return res
 
-def addContestant(dbURL,guild,name, immunity, probability, imageURL):
+def addContestant(dbURL,guild,name,imageURL, immunity = 0, probability = 1, challenge = 1):
     command = f"""
-            INSERT INTO entrants(name, guild, immunity, probability, image)
-            VALUES ('{name}','{guild}',{immunity},{probability},'{imageURL}')
+            INSERT INTO entrants(name, guild, immunity, probability, image, challenge)
+            VALUES ('{name}','{guild}',{immunity},{probability},'{imageURL}',{challenge})
             """
     conn=db.connect(dbURL)
     cur = conn.cursor()

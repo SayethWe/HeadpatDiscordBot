@@ -152,7 +152,7 @@ async def add(ctx, link : str, *, name : str):
 
     Images may 403 and are not checked - be safe, use an imgur image address"""
     name=name.replace("'","") #make sure we don't breake anything in postgres
-    code = hf.addContestant(DATABASE_HOST, ctx.guild.id, name, 0, 1, link)
+    code = hf.addContestant(DATABASE_HOST, ctx.guild.id, name, link)
     await ctx.reply(getResponse(rsp.WAIFU_ADD))
 
 @waifu.command()
@@ -268,7 +268,7 @@ async def addCSV(ctx):
         for line in f.readlines():
             print(line)
             args = line.split(',')
-            code = hf.addContestant(DATABASE_HOST, ctx.guild.id, args[0],args[1],args[2],args[3])
+            code = hf.addContestant(DATABASE_HOST, ctx.guild.id, args[0],args[3],immunity = args[1],probability = args[2])
     await ctx.reply(getResponse(rsp.WAIFU_ADD_CSV))
 
 ### Gacha Commands
