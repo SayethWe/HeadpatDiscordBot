@@ -295,6 +295,19 @@ async def challenge(ctx, other):
     pass
 
 @waifu.command()
+async def info(ctx, *, name : str):
+    challenge = hf.getChallenge(DATABASE_HOST, ctx.guild.id, name)[0][0]
+    image = hf.getImageURL(DATABASE_HOST, ctx.guild.id, name)
+    claimID=int(hf.whoClaimed(DATABASE_HOST, ctx.guild.id, name)[0])
+    print(claimID)
+    #print(await bot.fetch_user(132650983011385347))
+    claimaint = await bot.fetch_user(claimID)
+    print(image)
+    embed = discord.Embed()
+    embed.set_image(url=image);
+    await ctx.reply(f"{name}:\n  Strength:{challenge}\n  Claimed by:{claimaint.display_name}", embed=embed)
+
+@waifu.command()
 async def balance(ctx):
     balance = hf.fetchUserInfo(DATABASE_HOST, ctx.guild.id, ctx.author.id)[0]
     #print(balance)

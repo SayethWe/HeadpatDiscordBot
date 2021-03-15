@@ -503,8 +503,8 @@ def deleteContestant(dbURL,guild,name):
     cur=conn.cursor()
     try:
         cur.execute(command)
-        url=cur.fetchone()[0]
         conn.commit()
+        url=cur.fetchone()[0]
     except (Exception, db.DatabaseError) as error:
         print(error)
     finally:
@@ -512,15 +512,15 @@ def deleteContestant(dbURL,guild,name):
         conn.close()
 
 def getImageURL(dbURL,guild,name):
-    command = f"SELECT image FROM entrants WHERE name = %s AND guild = '{guild}'"
+    command = f"SELECT image FROM entrants WHERE name = '{name}' AND guild = '{guild}'"
 
     url=""
     conn=db.connect(dbURL);
     cur=conn.cursor()
     try:
-        cur.execute(command, (name))
-        url=cur.fetchone()[0]
+        cur.execute(command)
         conn.commit()
+        url=cur.fetchone()[0]
     except (Exception, db.DatabaseError) as error:
         print(error)
     finally:
@@ -671,6 +671,22 @@ def claimWaifu(dbURL, guildID, user, name):
     finally:
         cur.close()
         conn.close()
+
+def whoClaimed(dbURL, guildID, name):
+    command=(f"SELECT claimant FROM entrants WHERE name = '{name}'")
+    conn=db.connect(dbURL)
+    cur=conn.cursor()
+    res='0'
+    try:
+        cur.execute(command)
+        conn.commit()
+        res=cur.fetchone()
+    except (Exception, db.DatabaseError) as error:
+        print(error)
+    finally:
+        cur.close()
+        conn.close()
+    return res
 
 def fetchUserInfo(dbURL, guildID, userId):
     command = f"""
