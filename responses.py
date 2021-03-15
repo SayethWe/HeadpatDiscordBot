@@ -29,6 +29,7 @@ class Responses(Enum):
     GACHA_PULL_CHALLENGE='pullwaifuchallenge'
     GACHA_PULL_INSUFFICIENT='lowcredits'
     GACHA_PULL_NONPOSITIVE='illegalcredits'
+    GACHA_PULL_EMPTY='noWaifusUnclaimed'
 
     ERROR_UNHANDLED='unhandled'
     ERROR_FORBIDDEN='forbidden'
@@ -164,5 +165,9 @@ REPLY = {
     Responses.GACHA_PULL_INSUFFICIENT:
     [
         ("You haven't earned enough tickets to spend that many. Either use fewer or get more")
+    ],
+    Responses.GACHA_PULL_EMPTY:
+    [
+        ("There are no waifus left to claim. :sob:")
     ]
 }
