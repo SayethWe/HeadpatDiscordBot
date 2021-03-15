@@ -26,13 +26,15 @@ ERRORS_HANDLED = {
     'MissingRequiredArgument' : "That's not enough information! Come back when you have more",
     'CheckFailure' : "Something tells me I'm not supposed to do this for you right now.",
     'CheckAnyFailure' : "You're not allowed to do that. Go find someone who is.",
-    'CommandNotFound' : "That's not a command I recognize. Maybe you should ask for help?"
+    'CommandNotFound' : "That's not a command I recognize. Maybe you should ask for help?",
+    'CommandOnCooldown' : "You've used that a bit much recently. Why not take a break for a while?"
 }
 
 ACTIVITY = (discord.Game(name = "with your waifus while you're away. | !help"),
 discord.Activity(type=discord.ActivityType.watching,name='your waifus for you | !help'))
 
 TICKETS_PER_POLL = 2;
+TEAM_SIZE = 4;
 
 ### Help Command
 
@@ -274,9 +276,9 @@ async def addCSV(ctx):
 ### Gacha Commands
 
 @waifu.command()
-#@commands.cooldown(2,16*3600,commands.BucketType.user)
+@commands.cooldown(2,16*3600,commands.BucketType.user)
 async def pull(ctx, tickets : int = 1):
-    """Pull a random Waifu for your own collection"""
+    """Pull a random Waifu for your own collection. Limited to two pulls in 16 hours"""
     balance = hf.fetchUserInfo(DATABASE_HOST, ctx.guild.id, ctx.author.id)[0]
     if balance[0] < tickets:
         await ctx.reply(getResponse(rsp.GACHA_PULL_INSUFFICIENT))
@@ -301,8 +303,50 @@ async def pull(ctx, tickets : int = 1):
 
 @waifu.command()
 async def challenge(ctx, other):
-    """Challenge someone else to a waifu showdown to see who has better taste"""
+    """Challenge someone else to a waifu showdown to see who has better taste and luck. unimplemented"""
     pass
+
+@waifu.command()
+async def approveChallenge(ctx, acceptance : bool):
+    """respond to a challenge. 'yes' to accept. 'no' to decline. unimplemented"""
+    pass
+
+@waifu.command()
+async def setTeam(ctx, position:int, *, name):
+    """Set members of your team of waifus."""
+    if(position >= TEAM_SIZE):
+        await ctx.reply('teamtoobig')
+        return
+    team=hf.getTeam(DATABASE_HOST, ctx.guild.id, ctx.author.id)
+    if(len(team)<TEAM_SIZE):
+        for i in range(len(team), TEAM_SIZE):
+            team.append('')
+    print(team)
+    if ctx.author.id == int(hf.whoClaimed(DATABASE_HOST, ctx.guild.id, name)[0]):
+        if name in team:
+            team[team.index(name)]=''
+        print('match')
+        team[position] = name
+        print(team)
+        hf.setTeam(DATABASE_HOST, ctx.guild.id, ctx.author.id, team)
+        await ctx.reply('Your team is now {}'.format(team))
+
+@waifu.command()
+async def getTeam(ctx):
+    """check the composition of your team"""
+    team=hf.getTeam(DATABASE_HOST, ctx.guild.id, ctx.author.id)
+    await ctx.reply(team)
+
+@waifu.command()
+async def getClaims(ctx):
+    """see who you've laid claim to"""
+    claims=hf.getClaims(DATABASE_HOST, ctx.guild.id, ctx.author.id)
+    print(claims)
+    names=[]
+    for name in claims:
+        names.append(name[0])
+    await ctx.reply(names)
+
 
 @waifu.command()
 async def info(ctx, *, name : str):

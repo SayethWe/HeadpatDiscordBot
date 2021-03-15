@@ -379,6 +379,7 @@ def createTables(dbURL):
         tickets INTEGER NOT NULL,
         score INTEGER,
         challenge TEXT,
+        team TEXT [],
         PRIMARY KEY (guild, userid)
         )
         """
@@ -688,6 +689,22 @@ def whoClaimed(dbURL, guildID, name):
         conn.close()
     return res
 
+def getClaims(dbURL, guildID, claimant):
+    command=f"SELECT name FROM entrants WHERE claimant = '{claimant}'"
+    conn=db.connect(dbURL)
+    cur=conn.cursor()
+    res='0'
+    try:
+        cur.execute(command)
+        conn.commit()
+        res=cur.fetchall()
+    except (Exception, db.DatabaseError) as error:
+        print(error)
+    finally:
+        cur.close()
+        conn.close()
+    return res
+
 def fetchUserInfo(dbURL, guildID, userId):
     command = f"""
     INSERT INTO gacha (guild, userid, tickets, score) VALUES('{guildID}','{userId}',0,0)
@@ -743,3 +760,76 @@ def updateScore(dbURL, guildID, userId, score):
     finally:
         cur.close()
         conn.close()
+
+def issueChallenge(dbURL, guildID, challengerID, chalengeeID):
+    commands=(f"""
+        UPDATE gacha SET challenge='{challengeeID}' WHERE guild = '{guildID}' AND userid = '{challengerID}'
+    """,
+    """
+        UPDATE gacha SET challenge='{challengerID}' WHERE guild = '{guildID}' AND userid = '{challengeeID}'
+    """)
+    conn=db.connect(dbURL)
+    cur=conn.cursor()
+    try:
+        cur.execute(commands)
+        conn.commit()
+    except (Exception, db.DatabaseError) as error:
+        print(error)
+    finally:
+        cur.close()
+        conn.close()
+    pass
+
+def getChallengeParties(dbURL, guildID, userID):
+    command=f"""
+        SELECT userid, challenge FROM gacha WHERE guild = '{guildID}' AND userid = '{userID}'
+    """
+    pass
+
+def clearChallenge(dbURL, guildID, userID):
+    command=f"""
+        UPDATE gacha SET challenge = NULL WHERE guild = '{guildID}' AND userid = '{userID}'
+    """
+    conn=db.connect(dbURL)
+    cur=conn.cursor()
+    try:
+        cur.execute(command)
+        conn.commit()
+    except (Exception, db.DatabaseError) as error:
+        print(error)
+    finally:
+        cur.close()
+        conn.close()
+
+def setTeam(dbURL, guildID, userID, team):
+    command = f"""
+        UPDATE gacha SET team = ARRAY{team} WHERE guild = '{guildID}' AND userid = '{userID}'
+    """
+    conn=db.connect(dbURL)
+    cur=conn.cursor()
+    try:
+        cur.execute(command)
+        conn.commit()
+    except (Exception, db.DatabaseError) as error:
+        print(error)
+    finally:
+        cur.close()
+        conn.close()
+
+def getTeam(dbURL, guildID, userID):
+    command = f"""
+        SELECT team FROM gacha WHERE guild = '{guildID}' AND userid = '{userID}'
+    """
+    res=(None,None,None,None)
+    conn=db.connect(dbURL)
+    cur=conn.cursor()
+    try:
+        cur.execute(command)
+        conn.commit()
+        res=list(cur.fetchall()[0][0])
+    except (Exception, db.DatabaseError) as error:
+        print(error)
+    finally:
+        cur.close()
+        conn.close()
+    return res
