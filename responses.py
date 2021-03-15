@@ -25,6 +25,10 @@ class Responses(Enum):
     WAIFU_POLL_END_CLOSED='endedpoll'
     WAIFU_POLL_END_DELETED='polldne'
 
+    GACHA_PULL='pullWaifu'
+    GACHA_PULL_INSUFFICIENT='lowcredits'
+    GACHA_PULL_NONPOSITIVE='illegalcredits'
+
     ERROR_UNHANDLED='unhandled'
     ERROR_FORBIDDEN='forbidden'
 
@@ -143,5 +147,17 @@ REPLY = {
     Responses.WAIFU_ADD_CSV_MISSING:
     [
         ("Did you forget to attach the file for me? You did, didn't you?")
+    ],
+    Responses.GACHA_PULL:
+    [
+        ("You've just pulled {}!")
+    ],
+    Responses.GACHA_PULL_NONPOSITIVE:
+    [
+        ("Are you trying to cheat a free waifu? They're not *that* overpriced.")
+    ],
+    Responses.GACHA_PULL_INSUFFICIENT:
+    [
+        ("You haven't earned enough tickets to spend that many. Either use fewer or get more")
     ]
 }

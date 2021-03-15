@@ -34,11 +34,11 @@ def updateCRs(votes, CRs, eloBase=DEFAULTELOBASE):
     mid=int(np.max(votes)/2)
     #use ELO-like method to update CRs
     totalCR=np.sum(CRs)
-    newCR=np.round(((totalCR-CRs)+eloBase*(mid-ordinals))/(N-1))
+    newCR=np.maximum(np.round(((totalCR-CRs)+eloBase*(mid-ordinals))/(N-1)),np.ones(N))
     #print("updateCR:\n{} CRs\n{} votes\n{} ordinals\n{} result".format(CRs, votes, ordinals, newCR))
     return newCR
 
-def pull(contestants, CRs, tickets : int):
+def pull(names, CRs, tickets : int):
     precisionFactor=8; #helps keep numeric precision
     CRs=np.array(CRs)
     names=np.array(names)
@@ -48,4 +48,4 @@ def pull(contestants, CRs, tickets : int):
     probs=weights/weightSum
     #print(probs)
     pull=np.random.choice(names,1,False,probs)
-    return pull
+    return pull[0]

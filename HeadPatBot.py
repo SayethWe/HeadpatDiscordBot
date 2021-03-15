@@ -3,6 +3,7 @@ import os
 import random
 import urllib
 import HelpFunctions as hf
+import gacha
 import responses
 from responses import Responses as rsp
 import traceback
@@ -273,9 +274,21 @@ async def addCSV(ctx):
 ### Gacha Commands
 
 @waifu.command()
-@commands.cooldown(2,16*3600,commands.BucketType.user)
-async def pull(ctx, tickets):
-    pass
+#@commands.cooldown(2,16*3600,commands.BucketType.user)
+async def pull(ctx, tickets : int):
+    balance = hf.fetchUserInfo(DATABASE_HOST, ctx.guild.id, ctx.author.id)[0]
+    if balance[0] < tickets:
+        await ctx.reply(getResponse(rsp.GACHA_PULL_INSUFFICIENT))
+    elif tickets <= 0:
+        await ctx.reply(getResponse(rsp.GACHA_PULL_NONPOSITIVE))
+    else:
+        contestants = hf.claimableWaifus(DATABASE_HOST, ctx.guild.id)
+        names = [row[0] for row in contestants]
+        challenge = [row[1] for row in contestants]
+        pull = gacha.pull(names, challenge, tickets)
+        hf.claimWaifu(DATABASE_HOST, ctx.guild.id, ctx.author.id, pull)
+        hf.updateTickets(DATABASE_HOST, ctx.guild.id, ctx.author.id, balance[0]-tickets)
+        await ctx.reply(getResponse(rsp.GACHA_PULL).format(pull))
 
 @waifu.command()
 async def challenge(ctx, other):
@@ -283,7 +296,7 @@ async def challenge(ctx, other):
 
 @waifu.command()
 async def balance(ctx):
-    balance = hf.fetchUserInfo(DATABASE_HOST    , ctx.guild.id, ctx.author.id)[0]
+    balance = hf.fetchUserInfo(DATABASE_HOST, ctx.guild.id, ctx.author.id)[0]
     #print(balance)
     await ctx.reply('you have {} tickets and have scored {} points'.format(balance[0],balance[1]))
 

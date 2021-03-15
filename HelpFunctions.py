@@ -643,8 +643,24 @@ def getOptions(dbURL, guildID) :
         conn.close()
     return res
 
+def claimableWaifus(dbURL, guildID):
+    command=(f"SELECT name, challenge FROM entrants WHERE guild = '{guildID}' AND claimant IS NULL AND NOT immunity = -1")
+    conn=db.connect(dbURL)
+    cur=conn.cursor()
+    res=[None,None]
+    try:
+        cur.execute(command)
+        conn.commit()
+        res=cur.fetchall()
+    except (Exception, db.DatabaseError) as error:
+        print(error)
+    finally:
+        cur.close()
+        conn.close()
+    return res
+
 def claimWaifu(dbURL, guildID, user, name):
-    command=(f"UPDATE entrants SET claimaint = {user} WHERE guild = '{guildID}' AND name = '{name}'")
+    command=(f"UPDATE entrants SET claimant = {user} WHERE guild = '{guildID}' AND name = '{name}'")
     conn=db.connect(dbURL)
     cur=conn.cursor()
     try:
