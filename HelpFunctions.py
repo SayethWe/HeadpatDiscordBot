@@ -761,17 +761,14 @@ def updateScore(dbURL, guildID, userId, score):
         cur.close()
         conn.close()
 
-def issueChallenge(dbURL, guildID, challengerID, chalengeeID):
-    commands=(f"""
-        UPDATE gacha SET challenge='{challengeeID}' WHERE guild = '{guildID}' AND userid = '{challengerID}'
-    """,
-    """
+def issueChallenge(dbURL, guildID, challengerID, challengeeID):
+    command=f"""
         UPDATE gacha SET challenge='{challengerID}' WHERE guild = '{guildID}' AND userid = '{challengeeID}'
-    """)
+    """
     conn=db.connect(dbURL)
     cur=conn.cursor()
     try:
-        cur.execute(commands)
+        cur.execute(command)
         conn.commit()
     except (Exception, db.DatabaseError) as error:
         print(error)
@@ -784,7 +781,19 @@ def getChallengeParties(dbURL, guildID, userID):
     command=f"""
         SELECT userid, challenge FROM gacha WHERE guild = '{guildID}' AND userid = '{userID}'
     """
-    pass
+    res=(None,None)
+    conn=db.connect(dbURL)
+    cur=conn.cursor()
+    try:
+        cur.execute(command)
+        conn.commit()
+        res=cur.fetchone()
+    except (Exception, db.DatabaseError) as error:
+        print(error)
+    finally:
+        cur.close()
+        conn.close()
+    return res
 
 def clearChallenge(dbURL, guildID, userID):
     command=f"""

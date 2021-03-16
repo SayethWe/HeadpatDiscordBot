@@ -302,14 +302,37 @@ async def pull(ctx, tickets : int = 1):
         await ctx.reply(getResponse(rsp.GACHA_PULL).format(pull), embed = embed)
 
 @waifu.command()
-async def challenge(ctx, other):
-    """Challenge someone else to a waifu showdown to see who has better taste and luck. unimplemented"""
+@commands.cooldown(3,600,commands.BucketType.user)
+async def challenge(ctx, other : discord.Member):
+    """Challenge someone else to a waifu showdown to see who has better taste and luck. Limited to three in ten minutes. unimplemented"""
+    hf.issueChallenge(DATABASE_HOST, ctx.guild.id, ctx.author.id, other.id)
+    await ctx.reply(f'{ctx.author.mention} has challenged {other.mention}. use !waifu approve challenge to respond. Make sure you both have teams set up!')
     pass
 
 @waifu.command()
 async def approveChallenge(ctx, acceptance : bool):
     """respond to a challenge. 'yes' to accept. 'no' to decline. unimplemented"""
-    pass
+    other=hf.getChallengeParties(DATABASE_HOST, ctx.guild.id, ctx.author.id)[1]
+    print(other)
+    if other:
+        other=int(other)
+        if(acceptance):
+            team1CR=0
+            for name in hf.getTeam(DATABASE_HOST, ctx.guild.id, ctx.author.id):
+                c=hf.getChallenge(DATABASE_HOST, ctx.guild.id, name)[0][0]
+                team1CR+=c
+            team2CR=0
+            for name in hf.getTeam(DATABASE_HOST, ctx.guild.id, other):
+                c=hf.getChallenge(DATABASE_HOST, ctx.guild.id, name)[0][0]
+                team2CR+=c
+            result=gacha.fight(team1CR, team2CR)
+            print(result)
+        else:
+            hf.clearChallenge(DATABASE_HOST, ctx.guild.id, ctx.author.id)
+            await ctx.reply('challenge clear placeholder')
+    else:
+        #no challenge to respond to
+        await ctx.reply('no challenge placeholder')
 
 @waifu.command()
 async def setTeam(ctx, position:int, *, name):
