@@ -318,7 +318,7 @@ def generatePlots(options, votes):
     barFig.canvas.draw()
 
     distFig=plt.figure()
-    plt.hist(votes,np.array(range(np.max(votes)+2))-0.5,None,True)
+    plt.hist(votes,np.array(range(np.max(votes)+2))-0.5,None,False)
     plt.plot(np.array([cut,cut]),plt.gca().get_ylim(),'r-')
     plt.xlabel('Votes')
     plt.ylabel('Count')
