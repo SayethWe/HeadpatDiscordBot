@@ -12,12 +12,16 @@ from discord.ext import commands
 from discord.ext.commands import Bot
 from configparser import ConfigParser
 import logging
+import sys
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
-handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
-handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
-logger.addHandler(handler)
+fhandler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+fhandler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+logger.addHandler(fhandler)
+chandler = logging.StreamHandler(stream = sys.stdout)
+chandler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+logger.addHandler(chandler)
 
 config = ConfigParser()
 config.read('config.ini')
@@ -64,17 +68,17 @@ async def on_ready():
 
     for guild in bot.guilds:
 
-        print(
+        logger.info(
             f'{bot.user} is connected to the following guild:\n'
             f'{guild.name}(id: {guild.id})'
         )
 
 @bot.event
 async def on_command_error(ctx,error):
-    #print(ctx)
-    #print(error)
+    logger.debug(ctx)
+    logger.error(error)
     key = type(error).__name__
-    print(key)
+    logger.debug(key)
     if not key in ERRORS_HANDLED:
         await ctx.reply(getResponse(rsp.ERROR_UNHANDLED)+"\n{}".format(error))
     else:
@@ -83,12 +87,12 @@ async def on_command_error(ctx,error):
 
 @bot.event
 async def on_message_edit(before, after):
-    print((not before.pinned) and after.pinned)
-    print(after.channel.name)
+    logger.debug('message was just pinned? '+(not before.pinned) and after.pinned)
+    logger.debug('in channel: '+after.channel.name)
     if((not before.pinned) and after.pinned and after.channel.name == 'waifu-rating'):
         for i in range(10):
             rString = f'{i}\N{COMBINING ENCLOSING KEYCAP}'
-            print('i')
+            logger.debug('i')
             await after.add_reaction(rString)
         await after.add_reaction(f'\N{CHEQUERED FLAG}')
 
@@ -110,11 +114,11 @@ async def headpat(ctx):
                     break
                 else:
                     if not hf.removeHeadpat(DATABASE_HOST, message.guild.id, url):
-                        print('FAILED_REMOVE')
+                        logger.info('FAILED_REMOVE')
                         setDefaultHeadpat(embed)
                         break
         except Exception as e:
-            print(e)
+            logger.error(e)
             setDefaultHeadpat(embed)
         await ctx.reply(getResponse(rsp.HEADPAT) + ctx.author.display_name, embed = embed)
 
@@ -183,7 +187,7 @@ async def startPoll(ctx):
         poll = await ctx.send(getResponse(rsp.WAIFU_POLL_START))
         roundID, contestantNo = hf.startRound(DATABASE_HOST, ctx.guild.id, f'{poll.channel.id};{poll.id}')
     except Exception as e:
-        print(e)
+        logger.error(e)
         await poll.delete()
         await ctx.reply(getResponse(rsp.ERROR_UNHANDLED))
         return
@@ -210,7 +214,7 @@ async def endPoll(ctx):
         reply = await ctx.send(getResponse(rsp.WAIFU_POLL_END))
         roundVal = hf.getRoundMessage(DATABASE_HOST, ctx.guild.id)
     except Exception as e:
-        print(e)
+        logger.error(e)
         await reply.delete()
         await ctx.reply(getResponse(rsp.ERROR_UNHANDLED))
         return
@@ -226,16 +230,16 @@ async def endPoll(ctx):
     roundValues = roundVal[0]
     roundNum = roundVal[1]
 
-    print(roundValues)
+    logger.debug(roundValues)
     messageID = roundValues[2].split(';')
     channel = bot.get_channel(int(messageID[0]))
     if not channel:
-        print('NO CHANNEL')
+        logger.info('NO CHANNEL')
         await reply.delete()
         await ctx.reply(getResponse(rsp.WAIFU_POLL_END_DELETED))
     poll = await channel.fetch_message(int(messageID[1]))
     if not poll:
-        print('NO MESSAGE')
+        logger.info('NO MESSAGE')
         await reply.delete()
         await ctx.reply(getResponse(rsp.WAIFU_POLL_END_DELETED))
 
@@ -248,7 +252,7 @@ async def endPoll(ctx):
             if r.emoji[0] == str(i):
                 count = r.count - (1 if r.me else 0)
         votes.append(count)
-    print(votes)
+    logger.debug(votes)
     hf.endRound(DATABASE_HOST, ctx.guild.id, votes, roundValues[0], roundNum)
     await reply.delete()
     await ctx.reply('I present to you, the results', files = [discord.File('plot1.jpg'), discord.File('plot2.jpg')])
@@ -266,7 +270,7 @@ async def addCSV(ctx):
     await attachments[0].save(csvPath)
     with open(csvPath, 'r') as f:
         for line in f.readlines():
-            print(line)
+            logger.debug(line)
             args = line.split(',')
             code = hf.addContestant(DATABASE_HOST, ctx.guild.id, args[0],args[1],args[2],args[3])
     await ctx.reply(getResponse(rsp.WAIFU_ADD_CSV))
@@ -297,7 +301,7 @@ def verifyURL(url):
     try:
         image_formats = ("image/png", "image/jpeg", "image/jpg", "image/gif")
         r = urllib.request.urlopen(url)
-        print(r.headers['content-type'])
+        logger.debug(r.headers['content-type'])
         if r.headers["content-type"] in image_formats:
             return True
         return False

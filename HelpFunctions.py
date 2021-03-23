@@ -9,6 +9,7 @@ import io
 from urllib import request
 from configparser import ConfigParser
 import traceback
+import logging
 
 DEFAULTPAD = 5
 DEFAULTOFFSET = 20
@@ -20,6 +21,8 @@ DEFAULTIMMUNITYSCALE = 1
 DEFAULTPROBABILITY = 1
 
 IMAGEFAILURL = "https://i.imgur.com/lW0Yvgl.jpg"
+
+logger = logging.getLogger('discord')
 
 def createImageDefault(contestants,contestantUrls):
     '''
@@ -53,11 +56,11 @@ def startRound(dbURL, guild, message):
     roundNum = getRoundNum(dbURL, guild)
     roundValues = getRound(dbURL, guild, roundNum)
     if roundNum != 0 and not roundValues[1]:
-        print('UNFINISHED ROUND')
+        logger.info('UNFINISHED ROUND')
         return -1
 
     contestants = getContestants(dbURL, guild)
-    print(contestants)
+    logger.debug(contestants)
     #print(roundValues)
     names = [row[0] for row in contestants]
     immunities = [row[1] for row in contestants]
@@ -65,11 +68,11 @@ def startRound(dbURL, guild, message):
     urls = [row[3] for row in contestants]
 
     roundNum = roundNum  + 1
-    print(roundNum)
+    logger.debug(roundNum)
 
     picks = generateRound(immunities, probabilities, roundNum, 10)
     if picks == []:
-        print('NO VALID PICKS')
+        logger.info('NO VALID PICKS')
         return -2
     chosenContestants = [names[i] for i in picks]
 
@@ -89,12 +92,12 @@ def calculateRoundDefault(contestants,votes, roundNum):
 def getRoundMessage(dbURL, guild):
     roundNum = getRoundNum(dbURL, guild)
     if roundNum == 0:
-        print('NO ROUND')
+        logger.info('NO ROUND')
         return -2
     roundValues = getRound(dbURL, guild, roundNum)
 
     if roundNum != 0 and roundValues[1]:
-        print('ALREADY ENDED ROUND')
+        logger.info('ALREADY ENDED ROUND')
         return -1
     return roundValues, roundNum
 
@@ -165,7 +168,7 @@ def createImage(baseDir,names, urls, iconNums,targetHeight,numCol,pad,offset):
 
             try:
                 #read the image
-                print(f"Fetching image for {name} from {url}")
+                logger.debug(f"Fetching image for {name} from {url}")
                 resp=request.urlopen(url)
                 imgRaw=np.asarray(bytearray(resp.read()),dtype=np.uint8)
                 imgRaw=cv2.imdecode(imgRaw,cv2.IMREAD_UNCHANGED)
@@ -187,8 +190,8 @@ def createImage(baseDir,names, urls, iconNums,targetHeight,numCol,pad,offset):
             except (Exception) as error:
                 #Load default failure image
                 #stopgap for now, but it'll do
-                print(error)
-                print("Image failed, swapping to default")
+                logger.error(error)
+                logger.debug("Image failed, swapping to default")
                 resp=request.urlopen(IMAGEFAILURL)
                 imgRaw=np.asarray(bytearray(resp.read()),dtype=np.uint8)
                 imgRaw=cv2.imdecode(imgRaw,cv2.IMREAD_UNCHANGED)
@@ -240,16 +243,16 @@ def calculateRound(contestants,votes,probOffset,immunityScale,selectivity,roundN
     '''
         Calculates immunities and probabilities for a round
     '''
-    print(contestants)
-    print(votes)
+    logger.debug(contestants)
+    logger.debug(votes)
     ones=np.ones(len(votes))
     arr=np.array(votes)
     con=np.array(contestants)
-    print(arr)
+    logger.debug(arr)
     X=arr[arr!=0]
-    print(X)
+    logger.debug(X)
     if len(X)==0:
-        print('ZERO')
+        logger.debug('ZERO')
         imm=-1*np.ones(len(arr))
         prob=np.zeros(len(arr))
         elim=con
@@ -285,8 +288,8 @@ def generateRound(immunities,probabilities,roundNum,roundSize):
     valProb=np.array(probabilities)[imm<roundNum]
     imm=imm[imm<roundNum]
 
-    print(val)
-    print(imm)
+    logger.debug(val)
+    logger.debug(imm)
 
     val=val[imm>=0]
     valProb=valProb[imm>=0]
@@ -296,7 +299,7 @@ def generateRound(immunities,probabilities,roundNum,roundSize):
 
     probSum=np.sum(valProb)*np.ones(len(val))
     probs=valProb/probSum
-    print(probs)
+    logger.debug(probs)
 
     currSize=min(len(val),roundSize)
     picks=np.random.choice(val,currSize,False,probs)
@@ -381,7 +384,7 @@ def createTables(dbURL):
             cur.execute(command)
         conn.commit()
     except (Exception, db.DatabaseError) as error:
-        print(error)
+        logger.error(error)
     finally:
         cur.close()
         conn.close()
@@ -403,8 +406,8 @@ def addHeadpat(dbURL,guildID,url):
         res = 0
     except db.DatabaseError as error:
         traceback.print_exc()
-        print(errorcodes.lookup(error.pgcode))
-        print(errorcodes.UNIQUE_VIOLATION)
+        logger.error(errorcodes.lookup(error.pgcode))
+        #logger.error(errorcodes.UNIQUE_VIOLATION)
         if error.pgcode == errorcodes.UNIQUE_VIOLATION:
             res = -1
         else:
@@ -427,7 +430,7 @@ def getHeadpat(dbURL,guildID):
         conn.commit()
         output = cur.fetchone()[0]
     except (Exception, db.DatabaseError) as error:
-        print(error)
+        logger.error(error)
     finally:
         cur.close()
         conn.close()
@@ -443,7 +446,7 @@ def removeHeadpat(dbURL,guildID,url):
         conn.commit()
         res = True
     except (Exception, db.DatabaseError) as error:
-        print(error)
+        logger.error(error)
         res = False
     finally:
         cur.close()
@@ -478,7 +481,7 @@ def updateContestant(dbURL,guild,name,immunity,probability):
         cur.execute(command, (immunity, probability, name))
         conn.commit()
     except (Exception, db.DatabaseError) as error:
-        print(error)
+        logger.error(error)
     finally:
         cur.close()
         conn.close()
@@ -492,7 +495,7 @@ def deleteContestant(dbURL,guild,name):
         url=cur.fetchone()[0]
         conn.commit()
     except (Exception, db.DatabaseError) as error:
-        print(error)
+        logger.error(error)
     finally:
         cur.close()
         conn.close()
@@ -508,7 +511,7 @@ def getImageURL(dbURL,guild,name):
         url=cur.fetchone()[0]
         conn.commit()
     except (Exception, db.DatabaseError) as error:
-        print(error)
+        logger.error(error)
     finally:
         cur.close()
         conn.close()
@@ -522,7 +525,7 @@ def storeRoundStart(dbURL,guild,names, roundNum, message):
         cur.execute(command, (list(names), roundNum))
         conn.commit()
     except(Exception, db.DatabaseError) as error:
-        print(error)
+        logger.error(error)
     finally:
         cur.close()
         conn.close()
@@ -535,7 +538,7 @@ def storeRoundEnd(dbURL,guild,votes,roundNum):
         cur.execute(command, (list(votes), roundNum))
         conn.commit()
     except(Exception, db.DatabaseError) as error:
-        print(error)
+        logger.error(error)
     finally:
         cur.close()
         conn.close()
@@ -550,7 +553,7 @@ def getRound(dbURL,guild,roundNum):
         conn.commit()
         res=cur.fetchone()
     except db.DatabaseError as error:
-        print(error.pgcode)
+        logger.error(error.pgcode)
         res = -1
     finally:
         cur.close()
@@ -574,7 +577,7 @@ def getRoundNum(dbURL,guild):
         else:
             res = res[0]
     except (Exception, db.DatabaseError) as error:
-        print(error)
+        logger.error(error)
     finally:
         cur.close()
         conn.close()
@@ -590,7 +593,7 @@ def getContestants(dbURL,guildID):
         conn.commit()
         res=cur.fetchall()
     except (Exception, db.DatabaseError) as error:
-        print(error)
+        logger.error(error)
     finally:
         cur.close()
         conn.close()
@@ -607,7 +610,7 @@ def getOptions(dbURL, guildID) :
         conn.commit()
         res=cur.fetchall()
     except (Exception, db.DatabaseError) as error:
-        print(error)
+        logger.error(error)
     finally:
         cur.close()
         conn.close()
