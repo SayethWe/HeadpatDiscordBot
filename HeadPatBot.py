@@ -286,7 +286,7 @@ async def exportCSV(ctx):
     """exports all your waifus at once."""
     contestants=hf.getContestants(DATABASE_HOST, ctx.guild.id)
     lines = [",".join(map(str,row)) for row in contestants]
-    logger.info(lines)
+    logger.debug(lines)
 
     baseDir = os.path.dirname(__file__)
     fileName=f'waifu{ctx.guild.id}export.csv'
