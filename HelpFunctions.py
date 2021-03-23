@@ -324,13 +324,14 @@ def generatePlots(options, votes):
 
     return (barFig,distFig)
 
-def getWaifuString(dbURL, guildID, excludeElim):
+def getWaifuString(dbURL, guildID, excludeElim, sort=True):
     contestants = getContestants(dbURL, guildID)
     names = np.array([row[0] for row in contestants])
     immunities = np.array([row[1] for row in contestants])
     if excludeElim:
         names=names[immunities>=0]
-    text="\n> ".join(names)
+    if sort:
+        text="\n> ".join(np.sort(names))
     return text
 
 def createTables(dbURL):
