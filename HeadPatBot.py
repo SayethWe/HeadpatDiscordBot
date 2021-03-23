@@ -16,11 +16,16 @@ import sys
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.DEBUG)
+format=logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s')
+
 fhandler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
-fhandler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+fhandler.setLevel('DEBUG')
+fhandler.setFormatter(format)
 logger.addHandler(fhandler)
+
 chandler = logging.StreamHandler(stream = sys.stdout)
-chandler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+chandler.setFormatter(format)
+chandler.setLevel('INFO')
 logger.addHandler(chandler)
 
 config = ConfigParser()
@@ -281,13 +286,17 @@ async def exportCSV(ctx):
     """exports all your waifus at once."""
     contestants=hf.getContestants(DATABASE_HOST, ctx.guild.id)
     lines = [",".join(map(str,row)) for row in contestants]
+    logger.info(lines)
 
     baseDir = os.path.dirname(__file__)
     fileName=f'waifu{ctx.guild.id}export.csv'
     csvPath = os.path.join(baseDir, fileName)
 
     with open(csvPath, 'w') as f:
-        f.writelines(lines)
+        for line in lines:
+            if not line[-1] == '\n':
+                line = line+'\n'
+            f.write(line)
     await ctx.reply(getResponse(rsp.WAIFU_GET_CSV), files=[discord.File(fileName)])
 
 
