@@ -315,7 +315,7 @@ def generatePlots(options, votes):
     barFig.canvas.draw()
 
     distFig=plt.figure()
-    plt.hist(votes,np.array(range(np.max(votes)+1))-0.5,None,True)
+    plt.hist(votes,np.array(range(np.max(votes)+2))-0.5,None,True)
     plt.plot(np.array([cut,cut]),plt.gca().get_ylim(),'r-')
     plt.xlabel('Votes')
     plt.ylabel('Count')
@@ -323,6 +323,15 @@ def generatePlots(options, votes):
     distFig.canvas.draw()
 
     return (barFig,distFig)
+
+def getWaifuString(dbURL, guildID, excludeElim):
+    contestants = getContestants(dbURL, guildID)
+    names = np.array([row[0] for row in contestants])
+    immunities = np.array([row[1] for row in contestants])
+    if excludeElim:
+        names=names[immunities>=0]
+    text="\n> ".join(names)
+    return text
 
 def createTables(dbURL):
     commands = (
@@ -448,16 +457,11 @@ def addContestant(dbURL,guild,name, immunity, probability, imageURL):
     conn=db.connect(dbURL)
     cur = conn.cursor()
     res = False
-    try:
-        cur.execute(command)
-        conn.commit()
-        res = True
-    except (Exception, db.DatabaseError) as error:
-        print(error)
-        res = False
-    finally:
-        cur.close()
-        conn.close()
+    cur.execute(command)
+    conn.commit()
+    res = True
+    cur.close()
+    conn.close()
     return res
 
 def updateContestant(dbURL,guild,name,immunity,probability):

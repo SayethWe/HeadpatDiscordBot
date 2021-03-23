@@ -11,6 +11,13 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import Bot
 from configparser import ConfigParser
+import logging
+
+logger = logging.getLogger('discord')
+logger.setLevel(logging.DEBUG)
+handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+logger.addHandler(handler)
 
 config = ConfigParser()
 config.read('config.ini')
@@ -153,6 +160,12 @@ async def add(ctx, link : str, *, name : str):
     await ctx.reply(getResponse(rsp.WAIFU_ADD))
 
 @waifu.command()
+async def list(ctx, excludeElim : bool = True):
+    """Get a list of the waifus in the server"""
+    text=hf.getWaifuString(DATABASE_HOST,ctx.guild.id, excludeElim)
+    await ctx.reply(getResponse(rsp.WAIFU_LIST)+'\n> '+text)
+
+@waifu.command()
 @commands.check_any(rc.allowMod())
 async def remove(ctx, *, name : str):
     """remove a waifu from the poling system.
@@ -257,6 +270,22 @@ async def addCSV(ctx):
             args = line.split(',')
             code = hf.addContestant(DATABASE_HOST, ctx.guild.id, args[0],args[1],args[2],args[3])
     await ctx.reply(getResponse(rsp.WAIFU_ADD_CSV))
+
+@waifu.command()
+@commands.check_any(rc.allowMod())
+async def exportCSV(ctx):
+    """exports all your waifus at once."""
+    contestants=hf.getContestants(DATABASE_HOST, ctx.guild.id)
+    lines = [",".join(map(str,row)) for row in contestants]
+
+    baseDir = os.path.dirname(__file__)
+    fileName=f'waifu{ctx.guild.id}export.csv'
+    csvPath = os.path.join(baseDir, fileName)
+
+    with open(csvPath, 'w') as f:
+        f.writelines(lines)
+    await ctx.reply(getResponse(rsp.WAIFU_GET_CSV), files=[discord.File(fileName)])
+
 
 ### Helper Functions and Legacy Code
 

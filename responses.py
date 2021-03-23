@@ -15,6 +15,7 @@ class Responses(Enum):
     WAIFU_ADD_EXISTS='waifuaddexisting'
     WAIFU_ADD_CSV='waifuaddcsv'
     WAIFU_ADD_CSV_MISSING='missingcsv'
+    WAIFU_GET_CSV='waifugetcsv'
     WAIFU_REMOVE='waifuRemove'
     WAIFU_POLL_START='waifustartpoll'
     WAIFU_POLL_START_SUCCESS='pollCreated'
@@ -24,6 +25,7 @@ class Responses(Enum):
     WAIFU_POLL_END_EMPTY='nopollmade'
     WAIFU_POLL_END_CLOSED='endedpoll'
     WAIFU_POLL_END_DELETED='polldne'
+    WAIFU_LIST='listWaifu'
 
     ERROR_UNHANDLED='unhandled'
     ERROR_FORBIDDEN='forbidden'
@@ -131,6 +133,15 @@ REPLY = {
     Responses.WAIFU_POLL_START_SUCCESS:
     [
         ("Here's your round. But we all know that I'm the only one who deserves any votes.")
+    ],
+    Responses.WAIFU_LIST:
+    [
+        ("All the waifus you've made me keep track of:"),
+        ("Fine. Here's everyone:")
+    ],
+    Responses.WAIFU_GET_CSV:
+    [
+        ("Here's everyone. You're not... *leaving* me are you?")
     ],
     Responses.ERROR_FORBIDDEN :
     [
