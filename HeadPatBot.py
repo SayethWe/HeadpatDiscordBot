@@ -164,9 +164,14 @@ async def add(ctx, link : str, *, name : str):
     """add a waifu to the poll system
 
     Images may 403 and are not checked - be safe, use an imgur image address"""
-    name=name.replace("'","") #make sure we don't breake anything in postgres
-    code = hf.addContestant(DATABASE_HOST, ctx.guild.id, name, 0, 1, link)
-    await ctx.reply(getResponse(rsp.WAIFU_ADD))
+    reply = getResponse(rsp.ERROR_UNHANDLED)
+    if(not verifyURL(link)):
+        reply = getResponse(rsp.WAIFU_ADD_URL_BROKEN)
+    else:
+        name=name.replace("'","") #make sure we don't breake anything in postgres
+        code = hf.addContestant(DATABASE_HOST, ctx.guild.id, name, 0, 1, link)
+        reply = getResponse(rsp.WAIFU_ADD)
+    await ctx.reply(reply)
 
 @waifu.command()
 async def list(ctx, excludeElim : bool = True):

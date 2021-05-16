@@ -10,7 +10,7 @@ class Responses(Enum):
     HEADPAT_IMAGE_REMOVE='removeimage'
     HEADPAT_IMAGE_REMOVE_EMPTY='imagedne'
     HEADPAT_IMAGE_REMOVE_ALL='removeall'
-
+    WAIFU_ADD_URL_BROKEN='waifuaddurlbroken'
     WAIFU_ADD='waifuadd'
     WAIFU_ADD_EXISTS='waifuaddexisting'
     WAIFU_ADD_CSV='waifuaddcsv'
@@ -78,6 +78,11 @@ REPLY = {
     [
         ("I don't have that one.\n"
          "Do you? :face_with_hand_over_mouth:")
+    ],
+    Responses.WAIFU_ADD_URL_BROKEN :
+    [
+        ("That doesn't work!\n"
+         "If you don't get me a working URL, I, I'll... I'll have to do it, y'know")
     ],
     Responses.WAIFU_ADD_EXISTS :
     [
