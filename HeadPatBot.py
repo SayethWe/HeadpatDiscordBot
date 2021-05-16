@@ -89,7 +89,8 @@ async def on_command_error(ctx,error):
     else:
         await ctx.reply(ERRORS_HANDLED[key])
 
-
+#dinosaurs in the closet best be put to sleep
+'''
 @bot.event
 async def on_message_edit(before, after):
     logger.debug('message was just pinned? '+(not before.pinned) and after.pinned)
@@ -100,6 +101,8 @@ async def on_message_edit(before, after):
             logger.debug('i')
             await after.add_reaction(rString)
         await after.add_reaction(f'\N{CHEQUERED FLAG}')
+'''
+
 
 ### Headpat commands
 
