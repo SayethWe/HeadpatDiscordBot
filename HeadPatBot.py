@@ -11,6 +11,22 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import Bot
 from configparser import ConfigParser
+import logging
+import sys
+
+logger = logging.getLogger('discord')
+logger.setLevel(logging.DEBUG)
+format=logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s')
+
+fhandler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+fhandler.setLevel('DEBUG')
+fhandler.setFormatter(format)
+logger.addHandler(fhandler)
+
+chandler = logging.StreamHandler(stream = sys.stdout)
+chandler.setFormatter(format)
+chandler.setLevel('INFO')
+logger.addHandler(chandler)
 
 config = ConfigParser()
 config.read('config.ini')
@@ -57,17 +73,17 @@ async def on_ready():
 
     for guild in bot.guilds:
 
-        print(
+        logger.info(
             f'{bot.user} is connected to the following guild:\n'
             f'{guild.name}(id: {guild.id})'
         )
 
 @bot.event
 async def on_command_error(ctx,error):
-    #print(ctx)
-    #print(error)
+    logger.debug(ctx)
+    logger.error(error)
     key = type(error).__name__
-    print(key)
+    logger.debug(key)
     if not key in ERRORS_HANDLED:
         await ctx.reply(getResponse(rsp.ERROR_UNHANDLED)+"\n{}".format(error))
     else:
@@ -76,12 +92,12 @@ async def on_command_error(ctx,error):
 
 @bot.event
 async def on_message_edit(before, after):
-    print((not before.pinned) and after.pinned)
-    print(after.channel.name)
+    logger.debug('message was just pinned? '+(not before.pinned) and after.pinned)
+    logger.debug('in channel: '+after.channel.name)
     if((not before.pinned) and after.pinned and after.channel.name == 'waifu-rating'):
         for i in range(10):
             rString = f'{i}\N{COMBINING ENCLOSING KEYCAP}'
-            print('i')
+            logger.debug('i')
             await after.add_reaction(rString)
         await after.add_reaction(f'\N{CHEQUERED FLAG}')
 
@@ -103,11 +119,11 @@ async def headpat(ctx):
                     break
                 else:
                     if not hf.removeHeadpat(DATABASE_HOST, message.guild.id, url):
-                        print('FAILED_REMOVE')
+                        logger.info('FAILED_REMOVE')
                         setDefaultHeadpat(embed)
                         break
         except Exception as e:
-            print(e)
+            logger.error(e)
             setDefaultHeadpat(embed)
         await ctx.reply(getResponse(rsp.HEADPAT) + ctx.author.display_name, embed = embed)
 
@@ -147,10 +163,25 @@ async def waifu(ctx):
 async def add(ctx, link : str, *, name : str):
     """add a waifu to the poll system
 
-    Images may 403 and are not checked - be safe, use an imgur image address"""
-    name=name.replace("'","") #make sure we don't breake anything in postgres
-    code = hf.addContestant(DATABASE_HOST, ctx.guild.id, name, 0, 1, link)
-    await ctx.reply(getResponse(rsp.WAIFU_ADD))
+    Images may 403 but are checked - to be safe, use an imgur image address"""
+    reply = getResponse(rsp.ERROR_UNHANDLED)
+    if not verifyURL(link):
+        reply = getResponse(rsp.WAIFU_ADD_URL_BROKEN)
+    else:
+        name=name.replace("'","") #make sure we don't breake anything in postgres
+        code = hf.addContestant(DATABASE_HOST, ctx.guild.id, name, 0, 1, link)
+        reply = getResponse(rsp.WAIFU_ADD)
+        if code == -1:
+            reply = getResponse(rsp.WAIFU_ADD_EXISTS)
+        elif code == -2:
+            reply = getResponse(rsp.ERROR_UNHANDLED)
+    await ctx.reply(reply)
+
+@waifu.command()
+async def list(ctx, excludeElim : bool = True):
+    """Get a list of the waifus in the server"""
+    text=hf.getWaifuString(DATABASE_HOST,ctx.guild.id, excludeElim)
+    await ctx.reply(getResponse(rsp.WAIFU_LIST)+'\n> '+text)
 
 @waifu.command()
 @commands.check_any(rc.allowMod())
@@ -159,8 +190,11 @@ async def remove(ctx, *, name : str):
 
     not required for eliminated waifus, those are kept to prevent duplicates
     """
-    hf.deleteContestant(DATABASE_HOST,ctx.guild.id,name)
-    await ctx.reply(getResponse(rsp.WAIFU_REMOVE))
+    reply = getResponse(rsp.WAIFU_REMOVE)
+    res = hf.deleteContestant(DATABASE_HOST,ctx.guild.id,name)
+    if res == -1:
+        reply = getResponse(rsp.WAIFU_REMOVE_DNE)
+    await ctx.reply(reply)
 
 @waifu.command()
 @commands.check_any(rc.allowMod())
@@ -170,7 +204,7 @@ async def startPoll(ctx):
         poll = await ctx.send(getResponse(rsp.WAIFU_POLL_START))
         roundID, contestantNo = hf.startRound(DATABASE_HOST, ctx.guild.id, f'{poll.channel.id};{poll.id}')
     except Exception as e:
-        print(e)
+        logger.error(e)
         await poll.delete()
         await ctx.reply(getResponse(rsp.ERROR_UNHANDLED))
         return
@@ -197,7 +231,7 @@ async def endPoll(ctx):
         reply = await ctx.send(getResponse(rsp.WAIFU_POLL_END))
         roundVal = hf.getRoundMessage(DATABASE_HOST, ctx.guild.id)
     except Exception as e:
-        print(e)
+        logger.error(e)
         await reply.delete()
         await ctx.reply(getResponse(rsp.ERROR_UNHANDLED))
         return
@@ -213,16 +247,16 @@ async def endPoll(ctx):
     roundValues = roundVal[0]
     roundNum = roundVal[1]
 
-    print(roundValues)
+    logger.debug(roundValues)
     messageID = roundValues[2].split(';')
     channel = bot.get_channel(int(messageID[0]))
     if not channel:
-        print('NO CHANNEL')
+        logger.info('NO CHANNEL')
         await reply.delete()
         await ctx.reply(getResponse(rsp.WAIFU_POLL_END_DELETED))
     poll = await channel.fetch_message(int(messageID[1]))
     if not poll:
-        print('NO MESSAGE')
+        logger.info('NO MESSAGE')
         await reply.delete()
         await ctx.reply(getResponse(rsp.WAIFU_POLL_END_DELETED))
 
@@ -235,7 +269,7 @@ async def endPoll(ctx):
             if r.emoji[0] == str(i):
                 count = r.count - (1 if r.me else 0)
         votes.append(count)
-    print(votes)
+    logger.debug(votes)
     hf.endRound(DATABASE_HOST, ctx.guild.id, votes, roundValues[0], roundNum)
     await reply.delete()
     await ctx.reply('I present to you, the results', files = [discord.File('plot1.jpg'), discord.File('plot2.jpg')])
@@ -253,10 +287,30 @@ async def addCSV(ctx):
     await attachments[0].save(csvPath)
     with open(csvPath, 'r') as f:
         for line in f.readlines():
-            print(line)
+            logger.debug(line)
             args = line.split(',')
             code = hf.addContestant(DATABASE_HOST, ctx.guild.id, args[0],args[1],args[2],args[3])
     await ctx.reply(getResponse(rsp.WAIFU_ADD_CSV))
+
+@waifu.command()
+@commands.check_any(rc.allowMod())
+async def exportCSV(ctx):
+    """exports all your waifus at once."""
+    contestants=hf.getContestants(DATABASE_HOST, ctx.guild.id)
+    lines = [",".join(map(str,row)) for row in contestants]
+    logger.debug(lines)
+
+    baseDir = os.path.dirname(__file__)
+    fileName=f'waifu{ctx.guild.id}export.csv'
+    csvPath = os.path.join(baseDir, fileName)
+
+    with open(csvPath, 'w') as f:
+        for line in lines:
+            if not line[-1] == '\n':
+                line = line+'\n'
+            f.write(line)
+    await ctx.reply(getResponse(rsp.WAIFU_GET_CSV), files=[discord.File(fileName)])
+
 
 ### Helper Functions and Legacy Code
 
@@ -268,7 +322,7 @@ def verifyURL(url):
     try:
         image_formats = ("image/png", "image/jpeg", "image/jpg", "image/gif")
         r = urllib.request.urlopen(url)
-        print(r.headers['content-type'])
+        logger.debug(r.headers['content-type'])
         if r.headers["content-type"] in image_formats:
             return True
         return False

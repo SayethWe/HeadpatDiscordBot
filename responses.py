@@ -10,11 +10,13 @@ class Responses(Enum):
     HEADPAT_IMAGE_REMOVE='removeimage'
     HEADPAT_IMAGE_REMOVE_EMPTY='imagedne'
     HEADPAT_IMAGE_REMOVE_ALL='removeall'
-
+    WAIFU_ADD_URL_BROKEN='waifuaddurlbroken'
     WAIFU_ADD='waifuadd'
     WAIFU_ADD_EXISTS='waifuaddexisting'
     WAIFU_ADD_CSV='waifuaddcsv'
     WAIFU_ADD_CSV_MISSING='missingcsv'
+    WAIFU_GET_CSV='waifugetcsv'
+    WAIFU_REMOVE_DNE='waifuremovedne'
     WAIFU_REMOVE='waifuRemove'
     WAIFU_POLL_START='waifustartpoll'
     WAIFU_POLL_START_SUCCESS='pollCreated'
@@ -24,6 +26,7 @@ class Responses(Enum):
     WAIFU_POLL_END_EMPTY='nopollmade'
     WAIFU_POLL_END_CLOSED='endedpoll'
     WAIFU_POLL_END_DELETED='polldne'
+    WAIFU_LIST='listWaifu'
 
     ERROR_UNHANDLED='unhandled'
     ERROR_FORBIDDEN='forbidden'
@@ -77,15 +80,24 @@ REPLY = {
         ("I don't have that one.\n"
          "Do you? :face_with_hand_over_mouth:")
     ],
+    Responses.WAIFU_ADD_URL_BROKEN :
+    [
+        ("That doesn't work!\n"
+         "If you don't get me a working URL, I, I'll... I'll have to do it, y'know")
+    ],
     Responses.WAIFU_ADD_EXISTS :
     [
-        ("They're in there, baka!\n"
+        ("They're already in there, baka!\n"
          "本当に何、この状況！:anger:")
     ],
     Responses.WAIFU_ADD :
     [
         ("Waifu Waifu Waifu! More Waifu!\n"
          "They've been added to the pool")
+    ],
+    Responses.WAIFU_REMOVE_DNE :
+    [
+        ("They don't exist anyway, so I guess it's fine, isn't it?")
     ],
     Responses.WAIFU_REMOVE :
     [
@@ -131,6 +143,15 @@ REPLY = {
     Responses.WAIFU_POLL_START_SUCCESS:
     [
         ("Here's your round. But we all know that I'm the only one who deserves any votes.")
+    ],
+    Responses.WAIFU_LIST:
+    [
+        ("All the waifus you've made me keep track of:"),
+        ("Fine. Here's everyone:")
+    ],
+    Responses.WAIFU_GET_CSV:
+    [
+        ("Here's everyone. You're not... *leaving* me are you?")
     ],
     Responses.ERROR_FORBIDDEN :
     [

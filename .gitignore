@@ -4,3 +4,4 @@ TestEnv.py
 *.pyc
 *.png
 *.csv
+*.log

@@ -28,10 +28,18 @@ Adds all waifus from a csv file.
 Default CSVs for testing or bootstrapping included in github repository.  
 CSV must have columns in following order: `Name | Immunity (default 0) | Probability (default 1) | image.link`  
 Available to moderator roles
+##### !waifu exportCSV
+Exports the server's waifus to a csv file
+Available to moderator roles
 ##### !Waifu remove name
 Removes the named waifu from the poll list.  
 Not required nor reccomended for eliminated waifus - those are kept by default in order to revent re-addition, but will not appear in future polls.  
 Available to moderator roles
+##### !waifu list \[exclude eliminated (boolean __yes__/no)]
+Responds with a sorted list of the waifus in the server.
+Returns names only, no immunity or probability data.
+Adding an optional 'false' or 'no' argument wil also include waifus that have been eliminated from polling in the list.
+Available to all roles
 ##### !Waifu startpoll
 Selects 10 waifus, then creates and posts image collage.  
 Reacts with keypad numbers from 0 to 9, and a flag.  
@@ -49,14 +57,13 @@ Fetches the keypad number reacts from recent pins, excluding its own, and posts 
 ## Planned Features
 * Configurable Role Control
 * Configurable Poll Settings (size, image specifications, etc)
-* Random Replacement of headpat images
+* Random Replacement of headpat images by users
 * Auto-polling by time interval and/or completion votes
 * Discord image attachment/link support
-* csv export
 
 ## Unplanned/Out-of-scope features
-* Automated image fetching
-* Image Moderation
+* Image fetching from external service by name
+* Automated Image Moderation to exclude possibly un-wholesome content
 * Competent writing
 
 ## Backend
