@@ -460,12 +460,21 @@ def addContestant(dbURL,guild,name, immunity, probability, imageURL):
             """
     conn=db.connect(dbURL)
     cur = conn.cursor()
-    res = False
-    cur.execute(command)
-    conn.commit()
-    res = True
-    cur.close()
-    conn.close()
+    res = 0
+    try:
+        cur.execute(command)
+        conn.commit()
+    except db.DatabaseError as error:
+        traceback.print_exc()
+        logger.error(errorcodes.lookup(error.pgcode))
+        #logger.error(errorcodes.UNIQUE_VIOLATION)
+        if error.pgcode == errorcodes.UNIQUE_VIOLATION:
+            res = -1
+        else:
+            res = -2
+    finally:
+        cur.close()
+        conn.close()
     return res
 
 def updateContestant(dbURL,guild,name,immunity,probability):
