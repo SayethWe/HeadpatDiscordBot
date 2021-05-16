@@ -16,6 +16,7 @@ class Responses(Enum):
     WAIFU_ADD_CSV='waifuaddcsv'
     WAIFU_ADD_CSV_MISSING='missingcsv'
     WAIFU_GET_CSV='waifugetcsv'
+    WAIFU_REMOVE_DNE='waifuremovedne'
     WAIFU_REMOVE='waifuRemove'
     WAIFU_POLL_START='waifustartpoll'
     WAIFU_POLL_START_SUCCESS='pollCreated'
@@ -86,13 +87,17 @@ REPLY = {
     ],
     Responses.WAIFU_ADD_EXISTS :
     [
-        ("They're in there, baka!\n"
+        ("They're already in there, baka!\n"
          "本当に何、この状況！:anger:")
     ],
     Responses.WAIFU_ADD :
     [
         ("Waifu Waifu Waifu! More Waifu!\n"
          "They've been added to the pool")
+    ],
+    Responses.WAIFU_REMOVE_DNE :
+    [
+        ("They don't exist anyway, so I guess it's fine, isn't it?")
     ],
     Responses.WAIFU_REMOVE :
     [

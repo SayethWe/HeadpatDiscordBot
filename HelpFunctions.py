@@ -484,36 +484,32 @@ def updateContestant(dbURL,guild,name,immunity,probability):
         WHERE name = %s
         AND guild = '{guild}'
         """
-    conn=db.connect(dbURL);
+    conn=db.connect(dbURL)
     cur=conn.cursor()
-    try:
-        cur.execute(command, (immunity, probability, name))
-        conn.commit()
-    except (Exception, db.DatabaseError) as error:
-        logger.error(error)
-    finally:
-        cur.close()
-        conn.close()
+    cur.execute(command, (immunity, probability, name))
+    conn.commit()
+    cur.close()
+    conn.close()
 
 def deleteContestant(dbURL,guild,name):
     command=f"DELETE FROM entrants WHERE name = '{name}' AND guild = '{guild}' RETURNING image"
-    conn=db.connect(dbURL);
+    conn=db.connect(dbURL)
     cur=conn.cursor()
-    try:
-        cur.execute(command)
-        url=cur.fetchone()[0]
-        conn.commit()
-    except (Exception, db.DatabaseError) as error:
-        logger.error(error)
-    finally:
-        cur.close()
-        conn.close()
+    cur.execute(command)
+    url=cur.fetchone()
+    res = 0
+    if url == None:
+        res = -1
+    conn.commit()
+    cur.close()
+    conn.close()
+    return res
 
 def getImageURL(dbURL,guild,name):
     command = f"SELECT image FROM entrants WHERE name = %s AND guild = '{guild}'"
 
     url=""
-    conn=db.connect(dbURL);
+    conn=db.connect(dbURL)
     cur=conn.cursor()
     try:
         cur.execute(command, (name))

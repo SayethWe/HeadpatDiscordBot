@@ -190,8 +190,11 @@ async def remove(ctx, *, name : str):
 
     not required for eliminated waifus, those are kept to prevent duplicates
     """
-    hf.deleteContestant(DATABASE_HOST,ctx.guild.id,name)
-    await ctx.reply(getResponse(rsp.WAIFU_REMOVE))
+    reply = getResponse(rsp.WAIFU_REMOVE)
+    res = hf.deleteContestant(DATABASE_HOST,ctx.guild.id,name)
+    if res == -1:
+        reply = getResponse(rsp.WAIFU_REMOVE_DNE)
+    await ctx.reply(reply)
 
 @waifu.command()
 @commands.check_any(rc.allowMod())
