@@ -174,7 +174,7 @@ async def add(ctx, link : str, *, name : str):
         name=name.replace("'","") #make sure we don't breake anything in postgres
         code = hf.addContestant(DATABASE_HOST, ctx.guild.id, name, 0, 1, link)
         reply = getResponse(rsp.WAIFU_ADD)
-        logger.error("ADDCODE:" + code)
+        logger.error("ADDCODE:" + str(code))
         if code == -1:
             reply = getResponse(rsp.WAIFU_ADD_EXISTS)
         elif code == -2:
