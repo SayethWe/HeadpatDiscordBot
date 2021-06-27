@@ -27,6 +27,8 @@ class Responses(Enum):
     WAIFU_POLL_END_CLOSED='endedpoll'
     WAIFU_POLL_END_DELETED='polldne'
     WAIFU_LIST='listWaifu'
+    WAIFU_INFO='waifuinfo'
+    WAIFU_INFO_DNE='waifuinfodne'
 
     ERROR_UNHANDLED='unhandled'
     ERROR_FORBIDDEN='forbidden'
@@ -164,5 +166,13 @@ REPLY = {
     Responses.WAIFU_ADD_CSV_MISSING:
     [
         ("Did you forget to attach the file for me? You did, didn't you?")
+    ],
+    Responses.WAIFU_INFO:
+    [
+        ("Here's your waifu, fresh off the shelf:")
+    ],
+    Responses.WAIFU_INFO_DNE:
+    [
+        ("I don't have that waifu here, go somewhere else")
     ]
 }

@@ -317,6 +317,22 @@ async def exportCSV(ctx):
 
 
 ### Helper Functions and Legacy Code
+@waifu.command()
+@commands.check_any(rc.allowAll())
+async def info(ctx, *, name : str):
+    "Obtains Waifu Name and Image"
+    imageUrl = hf.getContestant(dbURL=DATABASE_HOST, guildID=ctx.guild.id, name=name)
+    reply = getResponse(rsp.WAIFU_INFO)
+    if(imageUrl == -1):
+        reply = getResponse(rsp.WAIFU_INFO_DNE)
+        await ctx.reply(reply)
+        return
+
+    embed = discord.Embed()
+    embed.set_image(imageUrl)
+    embed.set_footer(name)
+    await ctx.reply(reply, embed = embed)
+    
 
 def setDefaultHeadpat(embed):
     embed.set_image(url = 'https://i.pinimg.com/originals/99/4b/4e/994b4e0be0832e8ebf03e97a09859864.jpg')
@@ -329,7 +345,9 @@ def verifyURL(url):
         logger.debug(r.headers['content-type'])
         if r.headers["content-type"] in image_formats:
             return True
-        return False
+        else:
+            logger.info(f'Extension { r.headers["content-type"] } not suppported')
+            return False
     except Exception as e:
         traceback.print_exc()
         return False

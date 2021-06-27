@@ -604,6 +604,22 @@ def getContestants(dbURL,guildID):
         conn.close()
     return res
 
+def getContestant(dbURL,guildID, name):
+    command= f"SELECT image from entrants WHERE guild = '{guildID}' AND name = '{name}'"
+    conn=db.connect(dbURL)
+    cur=conn.cursor()
+    res=-1
+    try:
+        cur.execute(command)
+        conn.commit()
+        res=cur.fetchone()[0]
+    except (Exception, db.DatabaseError) as error:
+        logger.error(error)
+    finally:
+        cur.close()
+        conn.close()
+    return res
+
 def getOptions(dbURL, guildID) :
     command = f"SELECT * FROM options WHERE guild = '{guildID}''"
     conn=db.connect(dbURL)
