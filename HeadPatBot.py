@@ -322,6 +322,7 @@ async def exportCSV(ctx):
 async def info(ctx, *, name : str):
     "Obtains Waifu Name and Image"
     imageUrl = hf.getContestant(dbURL=DATABASE_HOST, guildID=ctx.guild.id, name=name)
+    logger.info(imageUrl)
     reply = getResponse(rsp.WAIFU_INFO)
     if(imageUrl == -1):
         reply = getResponse(rsp.WAIFU_INFO_DNE)
