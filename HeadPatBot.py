@@ -36,6 +36,7 @@ DATABASE_HOST = os.environ['DATABASE_URL']
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'))
 
 WAIFU_REPLY = config.get('DEFAULT', 'WAIFU_REPLY')
+WAIFU_LIST_SIZE_LIMIT = 1500
 
 ERRORS_HANDLED = {
     'MissingRequiredArgument' : "That's not enough information! Come back when you have more",
@@ -185,12 +186,16 @@ async def add(ctx, link : str, *, name : str):
 async def list(ctx, excludeElim : bool = True):
     """Get a list of the waifus in the server"""
     text=hf.getWaifuString(DATABASE_HOST,ctx.guild.id, excludeElim)
+    if(len(text) > WAIFU_LIST_SIZE_LIMIT):
+        file = generateNameFile(text, ctx.guild.id)
+        await ctx.reply(file=discord.File(file))
+        return
     await ctx.reply(getResponse(rsp.WAIFU_LIST)+'\n> '+text)
 
 @waifu.command()
 @commands.check_any(rc.allowMod())
 async def remove(ctx, *, name : str):
-    """remove a waifu from the poling system.
+    """remove a waifu from the polling system.
 
     not required for eliminated waifus, those are kept to prevent duplicates
     """
@@ -333,6 +338,15 @@ async def info(ctx, *, name : str):
     embed.set_image(url = imageUrl)
     embed.set_footer(text = name)
     await ctx.reply(reply, embed = embed)
+
+def generateNameFile(text, guild):
+    baseDir = os.path.dirname(__file__)
+    fileName=f'waifu{guild}list.txt'
+    filePath = os.path.join(baseDir, fileName)
+
+    with open(filePath, 'w') as f:
+        f.write(text)
+    return fileName
     
 
 def setDefaultHeadpat(embed):
