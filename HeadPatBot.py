@@ -330,8 +330,8 @@ async def info(ctx, *, name : str):
         return
 
     embed = discord.Embed()
-    embed.set_image(imageUrl)
-    embed.set_footer(name)
+    embed.set_image(url = imageUrl)
+    embed.set_footer(text = name)
     await ctx.reply(reply, embed = embed)
     
 
